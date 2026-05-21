@@ -14,98 +14,109 @@
 		font-display: swap;
 	}
     html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        background-color: #000000;
-        overflow: hidden;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+		margin: 0;
+		padding: 0;
+		width: 100%;
+		height: 100%;
+		overflow: hidden;
+		background-color: #000; /* Черные поля по бокам, если экран слишком широкий */
+		display: flex;
+		justify-content: center;
+		align-items: center;	
     }
 
-    #viewport {
-        width: 1080px;
-        height: 1920px;
-        background-color: #000000;
-        overflow: hidden;
-        position: relative;
-        transform-origin: center center;
-        flex-shrink: 0;
-        
-        /* Flexbox для вертикального выравнивания блоков */
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        align-items: center;
-        padding: 100px 0; /* Отступы сверху и снизу */
-        box-sizing: border-box;
-    }
+	#viewport {
+		position: relative;
+		width: 1080px;
+		height: 1920px;
+		transform-origin: center center;
+		flex-shrink: 0;
+		background-color: #000000;
+		overflow: hidden;
+		
+		display: flex;
+		flex-direction: column;
+		padding: 0; 
+		box-sizing: border-box;
+		
+		/* НАДО ДОБАВИТЬ: Центрирует дочерние блоки по горизонтали, */
+		/* если их ширина меньше, чем 1080px */
+		align-items: center; 
+	}
 
-    canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 1;
-        image-rendering: pixelated;
-        image-rendering: crisp-edges;
-    }
-
-    /* Общий контейнер для текстовых блоков */
-    .glitch-layer {
-        position: relative;
-        z-index: 2;
-        font-family: 'Comfortaa', cursive;
-        line-height: 1.1;
-        text-align: center;
-        color: #eec11e; /* Чистый белый для строгости */
-        pointer-events: none;
-        white-space: nowrap;
-        transform: translateZ(0);
-        /* Классическое анаглифное RGB расслоение (Красный и Циан) */
-        filter: drop-shadow(10px -6px 0 #ffffff);
-    }
-
-    /* Верхний блок: Две строки текста */
-    #phrase-container {
-        position: relative;
-        z-index: 2;
-        font-family: 'Comfortaa', cursive;
-        font-weight: bold; /* Жирный шрифт лучше читается на экранах ТВ */
-        font-size: 80px; /* Подобранный размер для длинных стихов */
-        line-height: 1.4;
-        text-align: center;
-        color: #eec11e; /* Чистый белый цвет */
-        text-transform: uppercase;
-        margin-top: 50px;
-        width: 100%;
-        max-width: 960px;
-        white-space: normal;
-        word-wrap: break-word;
-        pointer-events: none;
+	/* Верхний блок: Две строки текста */
+	#phrase-container {
+		flex: 1; 
+		
+		display: flex;
+		flex-direction: column; 
+		
+		/* ИСПРАВЛЕНО: Прижимает внутренние строки к нижней границе блока */
+		justify-content: flex-end; 
+		
+		/* Оставляем центрирование по горизонтали */
+		align-items: center; 
+		
+		position: relative;
+		z-index: 2;
+		font-family: 'Comfortaa', cursive;
+		font-weight: bold;
+		font-size: 80px;
+		line-height: 1.4;
+		text-align: center;
+		color: #eec11e;
+		text-transform: uppercase;
+		width: 100%;
+		max-width: 960px;
+		margin: 0 auto;
+		white-space: normal;
+		word-wrap: break-word;
+		pointer-events: none;
 		-webkit-text-stroke: 3px #eec11e;
 		paint-order: stroke fill;
-    }
 
-    /* Нижний блок: Цифры */
-    #glitch-text {
-        margin-bottom: 50px;
-    }
+		/* ДОПОЛНИТЕЛЬНО: Если текст прижмется слишком плотно к центру экрана, */
+		/* можно добавить небольшой отступ снизу (например, 20px или 50px) */
+		padding-bottom: 50px; 
+		box-sizing: border-box;
+	}
+
+
+	/* Общий контейнер для текстовых блоков (включая нижний #glitch-text) */
+	.glitch-layer {
+		/* Равное распределение: занимает вторую половину */
+		flex: 1; 
+		
+		/* ИСПРАВЛЕНО: Строгое центрирование текста по вертикали и горизонтали */
+		display: flex;
+		justify-content: center;
+		align-items: center; 
+		
+		position: relative;
+		z-index: 2;
+		font-family: 'Comfortaa', cursive;
+		line-height: 1.1;
+		text-align: center;
+		color: #eec11e;
+		pointer-events: none;
+		white-space: nowrap;
+		transform: translateZ(0);
+		filter: drop-shadow(10px -6px 0 #ffffff);
+	}
+
+	/* Нижний блок: Цифры */
+	#glitch-text {
+		margin-bottom: 0; 
+	}
+
 
     /* Размеры шрифтов для цифр в зависимости от длины */
-    .font-single { font-size: 900px; }
-    .font-double { font-size: 750px; }
-    .font-triple { font-size: 650px; }
     .glitch-hidden { display: none; }
 </style>
 </head>
 <body>
 <div id="viewport">
-    <canvas id="tv-canvas" width="180" height="320"></canvas>
+
     
     <!-- Верхний блок для случайного текста -->
     <div id="phrase-container">
@@ -220,20 +231,38 @@ function updateRandomText() {
 // Вся работа с DOM
 function updateUI() {
     if (!textElement) return;
+
     if (currentIdToDraw !== null) {
         textElement.innerText = currentIdToDraw;
-        textElement.className = 'glitch-layer';
         
-        if (currentIdToDraw >= 0 && currentIdToDraw <= 9) {
-            textElement.classList.add('font-single');
-        } else if (currentIdToDraw >= 10 && currentIdToDraw <= 99) {
-            textElement.classList.add('font-double');
-        } else if (currentIdToDraw >= 100 && currentIdToDraw <= 999) {
-            textElement.classList.add('font-triple');
+        // Сбрасываем классы на базовые 
+        textElement.className = 'glitch-layer'; 
+        
+        // Переменные ограничений
+        const maxWidth = 960;
+        const maxHeight = 960;
+        
+        // Начальный (максимально возможный) размер шрифта
+        let fontSize = 900; 
+        
+        // Принудительно устанавливаем стартовый размер перед проверкой
+        textElement.style.fontSize = fontSize + 'px';
+
+        // Цикл уменьшает шрифт, пока он не впишется И по ширине, И по высоте
+        while (
+            (textElement.scrollWidth > maxWidth || textElement.scrollHeight > maxHeight) 
+            && fontSize > 50
+        ) {
+            fontSize -= 5;
+            textElement.style.fontSize = fontSize + 'px';
         }
+
     } else {
         textElement.className = 'glitch-hidden';
+        // Сбрасываем инлайновый стиль шрифта, когда элемент скрыт
+        textElement.style.fontSize = ''; 
     }
+    
     updateRandomText();
 }
 

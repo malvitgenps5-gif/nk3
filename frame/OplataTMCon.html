@@ -114,96 +114,96 @@ body {
 Консьерж НК3 <span id="current-month"></span>
 </div><div id="grid"></div>
 <script>
-
-const now = new Date();
-const month = String(now.getMonth() + 1).padStart(2, '0'); // Добавляет 0, если месяц < 10
-const year = now.getFullYear();
-document.getElementById('current-month').innerText = `${month}/${year}`;
-
-async function getSharedData() {
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQJOCD4_INUxusWkaSaPbGhGBh5tMVAylQrQ4zYLK7DYunMhYkxOpC9mm4phbM3xKqmo073qzGgntE/pub?gid=469920882&single=true&output=csv';
-    const CACHE_KEY = 'sheet_data';
-    const TIMESTAMP_KEY = 'sheet_timestamp';
-    const TTL = 5 * 60 * 1000;
-
-    const cached = localStorage.getItem(CACHE_KEY);
-    const lastUpdate = localStorage.getItem(TIMESTAMP_KEY);
-    const now = Date.now();
-
-    if (cached && lastUpdate && (now - lastUpdate < TTL)) {
-		console.log('Фрейм взял данные из LocalStorage');
-        return cached;
-    }
-
-    try {
-		console.log('Фрейм делает сетевой запрос...');
-        const response = await fetch(CSV_URL);
-        if (!response.ok) throw new Error('Network response was not ok'); // Проверка статуса
-        
-        const data = await response.text();
-        localStorage.setItem(CACHE_KEY, data);
-        localStorage.setItem(TIMESTAMP_KEY, now.toString());
-        return data;
-    } catch (err) {
-        console.error('Ошибка загрузки:', err);
-        return cached || ""; // Возвращаем пустую строку, если кэша тоже нет
-    }
+// Вывод текущего месяца (срабатывает сразу при загрузке скрипта)
+const currentMonthEl = document.getElementById('current-month');
+if (currentMonthEl) {
+    const nowTime = new Date();
+    const month = String(nowTime.getMonth() + 1).padStart(2, '0'); // Добавляет 0, если месяц < 10
+    const year = nowTime.getFullYear();
+    currentMonthEl.innerText = `${month}/${year}`;
 }
 
-getSharedData().then(csv => {
-    if (!csv) return;
+// Глобальная функция, которую вызывает главная страница для обновления фрейма
+window.updateFrameData = function(pageData) {
+    console.log('Фрейм получил команду на обновление данных локально.');
+
+    // Читаем свежий CSV прямо из LocalStorage, куда его сохраняет главная страница
+    const csv = localStorage.getItem('sheet_data');
+    if (!csv) {
+        console.warn('Кэш sheet_data пуст.');
+        return;
+    }
 
     // Разбиваем по строкам, убирая пустые
     const rows = csv.split(/\r?\n/).filter(row => row.trim() !== "");
+    if (rows.length === 0) return;
+
+    // Парсим заголовки из первой строки (rows)
     const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
-    
     const idIdx = headers.indexOf("id");
     const currentIdx = headers.indexOf("current");
     const prevIdx = headers.indexOf("prev");
     const nextIdx = headers.indexOf("next");
 
+    // Формируем массив данных
     const resultData = rows.slice(1).map(rowStr => {
         const row = rowStr.split(",");
-        return {
-            id: row[idIdx]?.trim() || "",
-            current: row[currentIdx]?.trim() || "0",
-            prev: row[prevIdx]?.trim() || "0",
-            next: row[nextIdx]?.trim() || "0"
+        return { 
+            id: row[idIdx]?.trim() || "", 
+            current: row[currentIdx]?.trim() || "0", 
+            prev: row[prevIdx]?.trim() || "0", 
+            next: row[nextIdx]?.trim() || "0" 
         };
     });
 
+    // Отрисовываем сетку
     render(resultData);
-	console.log('Данные получены. Полезных строк:', resultData.length);
-});
+    console.log('Данные успешно пересчитаны и отрисованы. Полезных строк:', resultData.length);
+};
 
 function render(data) {
     const grid = document.getElementById("grid");
     if (!grid) return;
-    
     grid.innerHTML = "";
 
     data.forEach(item => {
         const cell = document.createElement("div");
         const idLower = String(item.id).toLowerCase();
-
-        if (idLower.includes('i')) { 
+        
+        if (idLower.includes('i')) {
             cell.className = "cell gold";
             cell.innerHTML = `<div>${item.id.replace(/i/gi, "")}</div>`;
-        } 
-        else if (item.id === "0" || item.id === "") {
+        } else if (item.id === "0" || item.id === "") {
             cell.className = "pust";
-        } 
-        else {
+        } else {
             cell.className = `cell ${item.current == "1" ? "green" : "red"}`;
             cell.innerHTML = `
                 <div class="number">${item.id}</div>
                 <div class="circles">
                     <div class="circle ${item.prev == "1" ? "green" : "red"}"></div>
                     <div class="circle ${item.next == "1" ? "green" : "red"}"></div>
-                </div>`;
+                </div>
+            `;
         }
         grid.appendChild(cell);
     });
+}
+
+// Первичный запуск при старте (чтобы фрейм не был пустым до первого переключения слайдов)
+function initializeApp() {
+    window.updateFrameData();
+}
+
+// Безопасная инициализация после загрузки шрифтов
+if (document.fonts) {
+    document.fonts.ready.then(function() {
+        console.log('Шрифты загружены. Запуск приложения.');
+        initializeApp();
+    });
+} else {
+    window.onload = function() {
+        setTimeout(initializeApp, 1000);
+    };
 }
 </script>
 

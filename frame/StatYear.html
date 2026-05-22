@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ЖК Дмитриевский</title>
+<style>
+html {
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+}
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #0f172a;
+  color: white;
+}
+.header {
+  padding: 10px;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  background: #111827;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+#grid {
+  display: grid;
+  grid-template-columns: repeat(10, 90px);
+  gap: 12px;
+  justify-content: center;
+  padding: 30px;
+}
+.cell {
+  width: 90px;
+  height: 70px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: 0.3s;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  position: relative;
+  box-sizing: border-box;
+}
+.cell:hover {
+  transform: scale(1.05);
+}
+.number {
+  font-size: 36px;
+  font-weight: bold;
+  line-height: 1;
+  margin: 0;
+  /* Тень для текста, чтобы номер квартиры легко читался на любом стыке цветов */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8); 
+}
+.gold {
+  background: #ffad00 !important; /* Приоритет для золотого цвета */
+  
+}
+.gold .number {
+  text-shadow: none; /* Убираем тень текста на золотых ячейках */
+}
+.goldd {
+  background: #ffd700 !important; /* Приоритет для золотого цвета */
+  color: #333 !important;
+}
+.goldd .number {
+  text-shadow: none; /* Убираем тень текста на золотых ячейках */
+}
+.pust {
+  width: 90px;
+  height: 70px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  Консьерж НК3 <span id="current-month"></span>
+</div>
+<div id="grid"></div>
+
+<script>
+const now = new Date();
+const month = String(now.getMonth() + 1).padStart(2, '0');
+const year = now.getFullYear();
+document.getElementById('current-month').innerText = `${month}/${year}`;
+
+// Базовые цвета для градиента (можно настроить под себя)
+const GREEN_COLOR = "#3dd5c0"; // Насыщенный зеленый
+const RED_COLOR = "#dc2626";   // Насыщенный красный
+
+window.updateFrameData = function(pageData) {
+  console.log('Фрейм получил команду на обновление данных локально.');
+  
+  const csv = localStorage.getItem('sheet_data');
+  if (!csv) return;
+  
+  const rows = csv.split(/\r?\n/).filter(row => row.trim() !== "");
+  const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
+  
+  const idIdx = headers.indexOf("id");
+  
+  // Укажите здесь точное название колонки из таблицы (сейчас указано 'months')
+  const columnName = "months"; 
+  const monthsIdx = headers.indexOf(columnName);
+
+  const resultData = rows.slice(1).map(rowStr => {
+    const row = rowStr.split(",");
+    const rawMonths = parseInt(row[monthsIdx]?.trim()) || 0;
+    
+    // Ограничиваем строго от 0 до 12 месяцев
+    const monthsCount = Math.min(Math.max(rawMonths, 0), 12);
+    
+    // Переводим в проценты (например, 6 месяцев = 50%)
+    const percentValue = (monthsCount / 12) * 100;
+
+    return {
+      id: row[idIdx]?.trim() || "",
+      percent: percentValue,
+      months: monthsCount
+    };
+  });
+  
+  render(resultData);
+  console.log('Данные успешно обновлены.');
+  
+  if (typeof selectNextNumber === "function") {
+    selectNextNumber();
+  }
+};
+
+function render(data) {
+  const grid = document.getElementById("grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  
+  data.forEach(item => {
+    const cell = document.createElement("div");
+    const idLower = String(item.id).toLowerCase();
+    
+    // 1. Проверяем на служебную ячейку (индекс содержит 'i')
+    if (idLower.includes('i')) {
+      cell.className = "cell gold";
+      cell.innerHTML = `<div class="number">${item.id.replace(/i/gi, "")}</div>`;
+    } 
+    // 2. Проверяем на пустую ячейку
+    else if (item.id === "0" || item.id === "") {
+      cell.className = "pust";
+    } 
+    // 3. Если 12 месяцев из 12 (100%) — красим в золотой цвет
+    else if (item.months === 12) {
+      cell.className = "cell goldd";
+      cell.innerHTML = `<div class="number">${item.id}</div>`;
+    } 
+    // 4. Обычная ячейка с круговой секторной заливкой
+    else {
+      cell.className = "cell";
+      
+      const pct = item.percent;
+      
+      // conic-gradient создает заливку секторами по часовой стрелке от 12 часов
+      cell.style.background = `conic-gradient(${GREEN_COLOR} 0%, ${GREEN_COLOR} ${pct}%, ${RED_COLOR} ${pct}%, ${RED_COLOR} 100%)`;
+      
+      cell.innerHTML = `<div class="number">${item.id}</div>`;
+    }
+    grid.appendChild(cell);
+  });
+}
+
+
+
+// Первичный запуск при наличии данных
+if (localStorage.getItem('sheet_data')) {
+  window.updateFrameData();
+}
+</script>
+</body>
+</html>

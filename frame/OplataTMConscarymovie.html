@@ -143,6 +143,7 @@ window.updateFrameData = function(pageData) {
     });
 
     redRoomIds = currentRedList;
+    setInterval(drawLoop, speedInterval);
     console.log('Данные успешно пересчитаны. Красных квартир:', redRoomIds.length);
 };
 
@@ -242,8 +243,7 @@ function drawLoop() {
 
 // Первичный запуск при старте
 function initializeApp() {
-    window.updateFrameData();
-    setInterval(drawLoop, speedInterval);
+    window.updateFrameData();    
 }
 
 // Безопасная инициализация после загрузки шрифтов (важно для правильного рендера шрифта LeviBrush на Canvas)

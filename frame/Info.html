@@ -286,11 +286,15 @@ overflow: hidden;
 </div>
 <script src="https://malvitgenps5-gif.github.io/.github.io/js/crypto-js.min.js"></script>
 <script>
-const d=new Date();
-const m=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
-dateBlock.innerHTML=`<div>${d.getDate()}</div><div>${m[d.getMonth()]}</div><div>${d.getFullYear()}</div>`;
+// Вывод текущей даты (срабатывает сразу при загрузке скрипта)
+const d = new Date();
+const m = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+if (typeof dateBlock !== 'undefined') {
+    dateBlock.innerHTML = `<div>${d.getDate()}</div><div>${m[d.getMonth()]}</div><div>${d.getFullYear()}</div>`;
+}
 
-	function decryptAES(ciphertext, key) {
+// Функция расшифровки
+function decryptAES(ciphertext, key) {
     try {
         const bytes = CryptoJS.AES.decrypt(ciphertext, key);
         const originalText = bytes.toString(CryptoJS.enc.Utf8);
@@ -302,44 +306,24 @@ dateBlock.innerHTML=`<div>${d.getDate()}</div><div>${m[d.getMonth()]}</div><div>
         return "Ошибка при расшифровке: " + error.message;
     }
 }
-/* ДАННЫЕ */
 
-async function getSharedData() {
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQJOCD4_INUxusWkaSaPbGhGBh5tMVAylQrQ4zYLK7DYunMhYkxOpC9mm4phbM3xKqmo073qzGgntE/pub?gid=469920882&single=true&output=csv';
-    const CACHE_KEY = 'sheet_data';
-    const TIMESTAMP_KEY = 'sheet_timestamp';
-    const TTL = 5 * 60 * 1000;
+// Глобальная функция, которую вызывает главная страница для обновления фрейма
+window.updateFrameData = function(pageData) {
+    console.log('Фрейм получил команду на обновление данных локально.');
 
-    const cached = localStorage.getItem(CACHE_KEY);
-    const lastUpdate = localStorage.getItem(TIMESTAMP_KEY);
-    const now = Date.now();
-
-    if (cached && lastUpdate && (now - lastUpdate < TTL)) {
-		console.log('Фрейм взял данные из LocalStorage');
-        return cached;
+    // Читаем свежий CSV прямо из LocalStorage, куда его сохраняет главная страница
+    const csv = localStorage.getItem('sheet_data');
+    if (!csv) {
+        console.warn('Кэш sheet_data пуст.');
+        return;
     }
 
-    try {
-		console.log('Фрейм делает сетевой запрос...');
-        const response = await fetch(CSV_URL);
-        if (!response.ok) throw new Error('Network response was not ok'); // Проверка статуса
-        
-        const data = await response.text();
-        localStorage.setItem(CACHE_KEY, data);
-        localStorage.setItem(TIMESTAMP_KEY, now.toString());
-        return data;
-    } catch (err) {
-        console.error('Ошибка загрузки:', err);
-        return cached || ""; // Возвращаем пустую строку, если кэша тоже нет
-    }
-}
-
-getSharedData().then(csv => {
-    if (!csv) return;
-
+    // Разбиваем по строкам, убирая пустые
     const rows = csv.split(/\r?\n/).filter(row => row.trim() !== "");
+    if (rows.length === 0) return;
+
+    // Парсим заголовки из первой строки (rows)
     const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
-    
     const poleIdx = headers.indexOf("pole");
     const paramIdx = headers.indexOf("param");
 
@@ -350,26 +334,24 @@ getSharedData().then(csv => {
         const pole = row[poleIdx]?.trim() || "";
         const param = row[paramIdx]?.trim() || "0";
         dataMap[pole] = param;
-		
         return { pole, param };
-    })
-	.filter(item => item.pole !== "");
+    }).filter(item => item.pole !== "");
+
     // --- Логика обновления интерфейса ---
     
     // Заполняем текстовые блоки, если они есть в CSV
-    if (document.getElementById('concierge')) 
+    if (document.getElementById('concierge')) {
         document.getElementById('concierge').innerHTML = decryptAES(dataMap.concierge || "", ".^O4K5#ZSq$;,)s!Yh9Q");
-	
-	const commentElement = document.getElementById('comment');
-	if (commentElement) {
-		const c1 = dataMap.comment1;
-		const c2 = dataMap.comment2 || "";
+    }
 
-		// Проверяем: не null/undefined, не пустая строка (после trim) и не ноль
-		const isValid = (val) => val !== undefined && val !== null && String(val).trim() !== "" && val !== 0 && val !== "0";
-
-		commentElement.innerHTML = isValid(c1) ? decryptAES(c1, ".^O4K5#ZSq$;,)s!Yh9Q"): c2;
-	}
+    const commentElement = document.getElementById('comment');
+    if (commentElement) {
+        const c1 = dataMap.comment1;
+        const c2 = dataMap.comment2 || "";
+        // Проверяем: не null/undefined, не пустая строка (после trim) и не ноль
+        const isValid = (val) => val !== undefined && val !== null && String(val).trim() !== "" && val !== 0 && val !== "0";
+        commentElement.innerHTML = isValid(c1) ? decryptAES(c1, ".^O4K5#ZSq$;,)s!Yh9Q") : c2;
+    }
 
     const relations = ["s", "a", "c", "h"];
     const lifts = ["L1", "L2", "L3"];
@@ -378,7 +360,6 @@ getSharedData().then(csv => {
     [...relations, ...lifts].forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
-
         const val = dataMap[id]?.trim();
 
         // Если значение "0", активируем пульсацию
@@ -392,9 +373,25 @@ getSharedData().then(csv => {
         }
     });
 
-    console.log('Данные обработаны и применены. Строк:', resultData.length);
-});
-</script>
+    console.log('Данные успешно пересчитаны и применены. Строк:', resultData.length);
+};
 
+// Первичный запуск при старте (чтобы фрейм не был пустым до первого переключения слайдов)
+function initializeApp() {
+    window.updateFrameData();
+}
+
+// Безопасная инициализация после загрузки шрифтов
+if (document.fonts) {
+    document.fonts.ready.then(function() {
+        console.log('Шрифты загружены. Запуск приложения.');
+        initializeApp();
+    });
+} else {
+    window.onload = function() {
+        setTimeout(initializeApp, 1000);
+    };
+}
+</script>
 </body>
 </html>

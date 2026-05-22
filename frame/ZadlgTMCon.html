@@ -95,119 +95,128 @@
     <div class="header"> Консьерж НК3 <span id="current-month"></span> </div>
     <div id="grid"></div> 
 
-    <script> 
-        const now = new Date(); 
-        const month = String(now.getMonth() + 1).padStart(2, '0'); 
-        const year = now.getFullYear(); 
-        document.getElementById('current-month').innerText = `${month}/${year}`; 
+    <script>
+// Вывод текущего месяца (срабатывает сразу при загрузке скрипта)
+const currentMonthEl = document.getElementById('current-month');
+if (currentMonthEl) {
+    const nowTime = new Date();
+    const month = String(nowTime.getMonth() + 1).padStart(2, '0');
+    const year = nowTime.getFullYear();
+    currentMonthEl.innerText = `${month}/${year}`;
+}
 
-        async function getSharedData() { 
-            const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQJOCD4_INUxusWkaSaPbGhGBh5tMVAylQrQ4zYLK7DYunMhYkxOpC9mm4phbM3xKqmo073qzGgntE/pub?gid=469920882&single=true&output=csv';; 
-            const CACHE_KEY = 'sheet_data'; 
-            const TIMESTAMP_KEY = 'sheet_timestamp'; 
-            const TTL = 5 * 60 * 1000; 
-            const cached = localStorage.getItem(CACHE_KEY); 
-            const lastUpdate = localStorage.getItem(TIMESTAMP_KEY); 
-            const now = Date.now(); 
-            
-            if (cached && lastUpdate && (now - lastUpdate < TTL)) { 
-                return cached; 
-            } 
-            try { 
-                console.log('Фрейм делает сетевой запрос...'); 
-                const response = await fetch(CSV_URL); 
-                if (!response.ok) throw new Error('Network response was not ok'); 
-                const data = await response.text(); 
-                localStorage.setItem(CACHE_KEY, data); 
-                localStorage.setItem(TIMESTAMP_KEY, now.toString()); 
-                return data; 
-            } catch (err) { 
-                console.error('Ошибка загрузки:', err); 
-                return cached || ""; 
-            } 
-        } 
+// Глобальная функция, которую вызывает главная страница для обновления фрейма
+window.updateFrameData = function(pageData) {
+    console.log('Фрейм получил команду на обновление данных локально.');
 
-        getSharedData().then(csv => { 
-            if (!csv) return; 
-            const rows = csv.split(/\r?\n/).filter(row => row.trim() !== ""); 
-            const headers = rows[0].split(",").map(h => h.trim().toLowerCase()); 
-            const idIdx = headers.indexOf("id"); 
-            const currentIdx = headers.indexOf("current"); 
-            const prevIdx = headers.indexOf("prev"); 
-            const nextIdx = headers.indexOf("next"); 
-            
-            const resultData = rows.slice(1).map(rowStr => { 
-                const row = rowStr.split(","); 
-                return { 
-                    id: row[idIdx]?.trim() || "", 
-                    current: row[currentIdx]?.trim() || "0", 
-                    prev: row[prevIdx]?.trim() || "0", 
-                    next: row[nextIdx]?.trim() || "0" 
-                }; 
-            }); 
-            
-            const filteredArray = resultData.filter(item => item.id !== "0" && !String(item.id).includes('i') && item.current == 0); 
-            filteredArray.sort((a, b) => a.id - b.id); 
-            
-            render(filteredArray); 
-            console.log('Данные получены. Полезных строк:', filteredArray.length); 
-        }); 
+    // Читаем свежий CSV прямо из LocalStorage, куда его сохраняет главная страница
+    const csv = localStorage.getItem('sheet_data');
+    if (!csv) {
+        console.warn('Кэш sheet_data пуст.');
+        return;
+    }
 
-        // Алгоритм поиска идеального размера под вертикальный формат
-        function layout(containerWidth, containerHeight, n, gap) {
-            let bestX = 1, bestSize = 0;
+    // Разбиваем по строкам, убирая пустые
+    const rows = csv.split(/\r?\n/).filter(row => row.trim() !== "");
+    if (rows.length === 0) return;
 
-            for (let cols = 1; cols <= n; cols++) {
-                const rows = Math.ceil(n / cols);
-                const availableWidth = containerWidth - (cols - 1) * gap;
-                const availableHeight = containerHeight - (rows - 1) * gap;
-                
-                if (availableWidth <= 0 || availableHeight <= 0) continue;
+    // Парсим заголовки из первой строки (rows)
+    const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
+    const idIdx = headers.indexOf("id");
+    const currentIdx = headers.indexOf("current");
+    const prevIdx = headers.indexOf("prev");
+    const nextIdx = headers.indexOf("next");
 
-                const sizeX = availableWidth / cols;
-                const sizeY = availableHeight / rows;
-                const size = Math.min(sizeX, sizeY);
+    // Формируем массив данных
+    const resultData = rows.slice(1).map(rowStr => {
+        const row = rowStr.split(",");
+        return { 
+            id: row[idIdx]?.trim() || "", 
+            current: row[currentIdx]?.trim() || "0", 
+            prev: row[prevIdx]?.trim() || "0", 
+            next: row[nextIdx]?.trim() || "0" 
+        };
+    });
 
-                if (size > bestSize) {
-                    bestSize = size;
-                    bestX = cols;
-                }
-            }
-            return { cols: bestX, size: bestSize };
+    // Фильтруем данные: исключаем пустышки "0", золотые ячейки с "i" и оставляем только с проверкой current == 0
+    const filteredArray = resultData.filter(item => item.id !== "0" && !String(item.id).includes('i') && item.current == 0);
+    
+    // Сортируем массив по возрастанию номеров ID
+    filteredArray.sort((a, b) => a.id - b.id);
+
+    // Отрисовываем сетку
+    render(filteredArray);
+    console.log('Данные успешно пересчитаны и отрисованы. Полезных строк:', filteredArray.length);
+};
+
+// Алгоритм поиска идеального размера под вертикальный формат
+function layout(containerWidth, containerHeight, n, gap) {
+    let bestX = 1, bestSize = 0;
+    for (let cols = 1; cols <= n; cols++) {
+        const rows = Math.ceil(n / cols);
+        const availableWidth = containerWidth - (cols - 1) * gap;
+        const availableHeight = containerHeight - (rows - 1) * gap;
+        if (availableWidth <= 0 || availableHeight <= 0) continue;
+        
+        const sizeX = availableWidth / cols;
+        const sizeY = availableHeight / rows;
+        const size = Math.min(sizeX, sizeY);
+        
+        if (size > bestSize) {
+            bestSize = size;
+            bestX = cols;
         }
+    }
+    return { cols: bestX, size: bestSize };
+}
 
-        function render(data) { 
-            const grid = document.getElementById("grid"); 
-            grid.innerHTML = ""; 
+function render(data) {
+    const grid = document.getElementById("grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    
+    const elementCount = data.length;
+    if (elementCount === 0) return;
 
-            const elementCount = data.length;
-            if (elementCount === 0) return;
+    // ЖЕСТКО задаем размеры из CSS под портретный режим
+    const canvasWidth = 1000;
+    const canvasHeight = 1800;
+    const gap = 12;
 
-            // ЖЕСТКО задаем размеры из CSS под портретный режим, 
-            // чтобы расчет не зависел от того, на каком экране открыт браузер разработчика
-            const canvasWidth = 1000; 
-            const canvasHeight = 1800; 
-            const gap = 12; 
+    // Считаем сетку
+    const config = layout(canvasWidth, canvasHeight, elementCount, gap);
 
-            // Считаем сетку
-            const config = layout(canvasWidth, canvasHeight, elementCount, gap);
+    // Применяем оптимальное количество колонок
+    grid.style.gridTemplateColumns = `repeat(${config.cols}, auto)`;
 
-            // Применяем оптимальное количество колонок
-            grid.style.gridTemplateColumns = `repeat(${config.cols}, auto)`;
+    // Рендерим ячейки
+    data.forEach(item => {
+        const cell = document.createElement("div");
+        cell.className = "cell red"; // Цвет по умолчанию из вашей логики
+        
+        // Передаем точный размер стороны квадрата
+        cell.style.setProperty('--size', `${config.size}px`);
+        cell.innerHTML = ` <div class="number">${item.id}</div> `;
+        grid.appendChild(cell);
+    });
+}
 
-            // Рендерим ячейки
-            data.forEach(item => { 
-                const cell = document.createElement("div"); 
-                cell.className = "cell red"; // Цвет по умолчанию из вашей логики
-                
-                // Передаем точный размер стороны квадрата
-                cell.style.setProperty('--size', `${config.size}px`);
+// Первичный запуск при старте (чтобы фрейм не был пустым до первого переключения слайдов)
+function initializeApp() {
+    window.updateFrameData();
+}
 
-                cell.innerHTML = ` 
-                    <div class="number">${item.id}</div> 
-                `; 
-                grid.appendChild(cell); 
-            }); 
-        } 
-    </script> 
-</body>
+// Безопасная инициализация после загрузки шрифтов
+if (document.fonts) {
+    document.fonts.ready.then(function() {
+        console.log('Шрифты загружены. Запуск приложения.');
+        initializeApp();
+    });
+} else {
+    window.onload = function() {
+        setTimeout(initializeApp, 1000);
+    };
+}
+		</script>
+	</body>
+</html>

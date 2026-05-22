@@ -76,201 +76,187 @@
 </div>
 
 <script>
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0'); 
-    const year = now.getFullYear();
-    document.getElementById('current-month').innerText = `${month}/${year}`;
+// Вывод текущего месяца (срабатывает сразу при загрузке скрипта)
+const currentMonthEl = document.getElementById('current-month');
+if (currentMonthEl) {
+    const nowTime = new Date();
+    const month = String(nowTime.getMonth() + 1).padStart(2, '0');
+    const year = nowTime.getFullYear();
+    currentMonthEl.innerText = `${month}/${year}`;
+}
 
-    const viewport = document.getElementById('viewport');
-    const canvas = document.getElementById('matrix');
-    const ctx = canvas.getContext('2d');
+const viewport = document.getElementById('viewport');
+const canvas = document.getElementById('matrix');
+const ctx = canvas.getContext('2d');
 
-    // --- ВАШИ ОБНОВЛЕННЫЕ ПАРАМЕТРЫ ---
-    const fontSize = 180;          
-    const speedInterval = 15;     
-    const maxActiveNumbers = 10;  
+// --- ВАШИ ОБНОВЛЕННЫЕ ПАРАМЕТРЫ ---
+const fontSize = 180;
+const speedInterval = 15;
+const maxActiveNumbers = 10;
+let activeNumbers = [];
+let redRoomIds = [];
 
-    let activeNumbers = [];       
-    let redRoomIds = [];          
+// --- ГЕНЕРАЦИЯ СЕТКИ ДЛЯ ИСКЛЮЧЕНИЯ ПЕРЕКРЫТИЯ ---
+const gridCols = Math.floor(canvas.width / (fontSize * 1.4)) || 1;
+const gridRows = Math.floor((canvas.height - 180) / (fontSize * 1.4)) || 1;
+const cellWidth = canvas.width / gridCols;
+const cellHeight = (canvas.height - 180) / gridRows;
 
-	// --- ГЕНЕРАЦИЯ СЕТКИ ДЛЯ ИСКЛЮЧЕНИЯ ПЕРЕКРЫТИЯ ---
-	const gridCols = Math.floor(canvas.width / (fontSize * 1.4)) || 1; 
-	const gridRows = Math.floor((canvas.height - 180) / (fontSize * 1.4)) || 1;  
-    const cellWidth = canvas.width / gridCols;
-    const cellHeight = (canvas.height - 180) / gridRows;
+// Массив всех доступных ячеек сетки
+let gridCells = [];
+for (let c = 0; c < gridCols; c++) {
+    for (let r = 0; r < gridRows; r++) {
+        gridCells.push({ col: c, row: r });
+    }
+}
 
-    // Массив всех доступных ячеек сетки
-    let gridCells = [];
-    for (let c = 0; c < gridCols; c++) {
-        for (let r = 0; r < gridRows; r++) {
-            gridCells.push({ col: c, row: r });
-        }
+// Глобальная функция, которую вызывает главная страница для обновления фрейма
+window.updateFrameData = function(pageData) {
+    console.log('Фрейм получил команду на обновление данных локально.');
+
+    // Читаем свежий CSV прямо из LocalStorage, куда его сохраняет главная страница
+    const csv = localStorage.getItem('sheet_data');
+    if (!csv) {
+        console.warn('Кэш sheet_data пуст.');
+        return;
     }
 
-    async function getSharedData() {
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQJOCD4_INUxusWkaSaPbGhGBh5tMVAylQrQ4zYLK7DYunMhYkxOpC9mm4phbM3xKqmo073qzGgntE/pub?gid=469920882&single=true&output=csv'; 
-        const CACHE_KEY = 'sheet_data';
-        const TIMESTAMP_KEY = 'sheet_timestamp';
-        const TTL = 5 * 60 * 1000;
+    // Разбиваем по строкам, убирая пустые
+    const rows = csv.split(/\r?\n/).filter(row => row.trim() !== "");
+    if (rows.length === 0) return;
 
-        const cached = localStorage.getItem(CACHE_KEY);
-        const lastUpdate = localStorage.getItem(TIMESTAMP_KEY);
-        const currentNow = Date.now();
+    // Парсим заголовки из первой строки (rows)
+    const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
+    const idIdx = headers.indexOf("id");
+    const currentIdx = headers.indexOf("current");
 
-        if (cached && lastUpdate && (currentNow - lastUpdate < TTL)) {
-			console.log('Фрейм взял данные из LocalStorage');
-            return cached;
+    const currentRedList = [];
+    rows.slice(1).forEach(rowStr => {
+        const row = rowStr.split(",");
+        const id = parseInt(row[idIdx]?.trim());
+        const current = row[currentIdx]?.trim() || "0";
+        
+        // Фильтруем только красные квартиры (ID от 1 до 192, у которых current === "0")
+        if (!isNaN(id) && id >= 1 && id <= 192 && current === "0") {
+            currentRedList.push(id);
         }
+    });
 
-        try {
-            console.log('Фрейм делает сетевой запрос...');
-            const response = await fetch(CSV_URL);
-            if (!response.ok) throw new Error('Network response was not ok');
-            
-            const data = await response.text();
-            localStorage.setItem(CACHE_KEY, data);
-            localStorage.setItem(TIMESTAMP_KEY, currentNow.toString());
-            return data;
-        } catch (err) {
-            console.error('Ошибка загрузки:', err);
-            return cached || "";
-        }
+    redRoomIds = currentRedList;
+    console.log('Данные успешно пересчитаны. Красных квартир:', redRoomIds.length);
+};
+
+// --- КЛАСС ЦИФРЫ С УЧЕТОМ ЗАНЯТОЙ ЯЧЕЙКИ ---
+class PaintNumber {
+    constructor(id, cellIndex, cell) {
+        this.id = id;
+        this.cellIndex = cellIndex;
+        this.x = cell.col * cellWidth + (cellWidth / 2);
+        this.y = 180 + (cell.row * cellHeight) + (cellHeight / 2);
+        this.alpha = 0;
+        this.state = 'fade-in';
+        this.fadeSpeed = Math.random() * 0.015 + 0.01;
+        this.visibleTime = Math.random() * 80 + 60;
     }
 
-    function updateData() {
-        getSharedData().then(csv => {
-            if (!csv) return;
-
-            const rows = csv.split(/\r?\n/).filter(row => row.trim() !== "");
-            const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
-            
-            const idIdx = headers.indexOf("id");
-            const currentIdx = headers.indexOf("current");
-
-            const currentRedList = [];
-            
-            rows.slice(1).forEach(rowStr => {
-                const row = rowStr.split(",");
-                const id = parseInt(row[idIdx]?.trim());
-                const current = row[currentIdx]?.trim() || "0";
-                
-                if (!isNaN(id) && id >= 1 && id <= 192 && current === "0") {
-                    currentRedList.push(id);
-                }
-            });
-
-            redRoomIds = currentRedList;
-            console.log('Данные обновлены. Красных квартир:', redRoomIds.length);
-        });
-    }
-
-    updateData();
-    setInterval(updateData, 10000); 
-
-    // --- КЛАСС ЦИФРЫ С УЧЕТОМ ЗАНЯТОЙ ЯЧЕЙКИ ---
-    class PaintNumber {
-        constructor(id, cellIndex, cell) {
-            this.id = id;
-            this.cellIndex = cellIndex; 
-            
-            this.x = cell.col * cellWidth + (cellWidth / 2);
-            this.y = 180 + (cell.row * cellHeight) + (cellHeight / 2); 
-            
-            this.alpha = 0;              
-            this.state = 'fade-in';      
-            
-            this.fadeSpeed = Math.random() * 0.015 + 0.01; 
-            this.visibleTime = Math.random() * 80 + 60;    
-        }
-
-        update() {
-            if (this.state === 'fade-in') {
-                this.alpha += this.fadeSpeed;
-                if (this.alpha >= 1) {
-                    this.alpha = 1;
-                    this.state = 'visible';
-                }
-            } else if (this.state === 'visible') {
-                this.visibleTime--;
-                if (this.visibleTime <= 0) {
-                    this.state = 'fade-out';
-                }
-            } else if (this.state === 'fade-out') {
-                this.alpha -= this.fadeSpeed;
-                if (this.alpha <= 0) {
-                    this.alpha = 0;
-                    this.state = 'dead';
-                }
+    update() {
+        if (this.state === 'fade-in') {
+            this.alpha += this.fadeSpeed;
+            if (this.alpha >= 1) {
+                this.alpha = 1;
+                this.state = 'visible';
+            }
+        } else if (this.state === 'visible') {
+            this.visibleTime--;
+            if (this.visibleTime <= 0) {
+                this.state = 'fade-out';
+            }
+        } else if (this.state === 'fade-out') {
+            this.alpha -= this.fadeSpeed;
+            if (this.alpha <= 0) {
+                this.alpha = 0;
+                this.state = 'dead';
             }
         }
+    }
 
-        draw() {
-            ctx.globalAlpha = this.alpha;
-            ctx.fillStyle = '#e60000';
-            ctx.shadowColor = '#800000';
-            ctx.shadowBlur = 15;
-            ctx.fillText(this.id, this.x, this.y);
+    draw() {
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = '#e60000';
+        ctx.shadowColor = '#800000';
+        ctx.shadowBlur = 15;
+        ctx.fillText(this.id, this.x, this.y);
+    }
+}
+
+// Основной цикл анимации canvas
+function drawLoop() {
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = fontSize + 'px "LeviBrush", Impact, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+
+    // 1. Собираем индексы занятых ячеек и блокируем их соседей по горизонтали
+    const blockedCellIndices = new Set();
+    activeNumbers.forEach(num => {
+        blockedCellIndices.add(num.cellIndex);
+        const currentCell = gridCells[num.cellIndex];
+        if (currentCell) {
+            const leftNeighborIndex = gridCells.findIndex(c => c.row === currentCell.row && c.col === currentCell.col - 1);
+            if (leftNeighborIndex !== -1) blockedCellIndices.add(leftNeighborIndex);
+
+            const rightNeighborIndex = gridCells.findIndex(c => c.row === currentCell.row && c.col === currentCell.col + 1);
+            if (rightNeighborIndex !== -1) blockedCellIndices.add(rightNeighborIndex);
+        }
+    });
+
+    // 2. Фильтруем полностью свободные ячейки с учетом горизонтального соседства
+    const freeCellIndices = gridCells
+        .map((_, index) => index)
+        .filter(index => !blockedCellIndices.has(index));
+
+    // Добавляем новые цифры
+    if (redRoomIds.length > 0 && activeNumbers.length < maxActiveNumbers && freeCellIndices.length > 0 && Math.random() > 0.7) {
+        const randomId = redRoomIds[Math.floor(Math.random() * redRoomIds.length)];
+        const isAlreadyVisible = activeNumbers.some(num => num.id === randomId);
+        
+        if (!isAlreadyVisible) {
+            const randomCellIndex = freeCellIndices[Math.floor(Math.random() * freeCellIndices.length)];
+            const targetCell = gridCells[randomCellIndex];
+            activeNumbers.push(new PaintNumber(randomId, randomCellIndex, targetCell));
         }
     }
 
-    function draw() {
-        ctx.globalAlpha = 1;
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Обновляем и отрисовываем активные элементы
+    activeNumbers.forEach(num => {
+        num.update();
+        num.draw();
+    });
 
-        ctx.font = fontSize + 'px "LeviBrush", Impact, sans-serif';
-        ctx.textBaseline = 'middle';
-        ctx.textAlign = 'center';
+    // Удаляем завершившие анимацию цифры
+    activeNumbers = activeNumbers.filter(num => num.state !== 'dead');
+}
 
-        // 1. Собираем индексы занятых ячеек и блокируем их соседей по горизонтали
-        const blockedCellIndices = new Set();
+// Первичный запуск при старте
+function initializeApp() {
+    window.updateFrameData();
+    setInterval(drawLoop, speedInterval);
+}
 
-        activeNumbers.forEach(num => {
-            blockedCellIndices.add(num.cellIndex);
-            
-            const currentCell = gridCells[num.cellIndex];
-            if (currentCell) {
-                // Ищем соседа слева (тот же ряд, колонка - 1)
-                const leftNeighborIndex = gridCells.findIndex(c => c.row === currentCell.row && c.col === currentCell.col - 1);
-                if (leftNeighborIndex !== -1) blockedCellIndices.add(leftNeighborIndex);
-
-                // Ищем соседа справа (тот же ряд, колонка + 1)
-                const rightNeighborIndex = gridCells.findIndex(c => c.row === currentCell.row && c.col === currentCell.col + 1);
-                if (rightNeighborIndex !== -1) blockedCellIndices.add(rightNeighborIndex);
-            }
-        });
-
-        // 2. Фильтруем полностью свободные ячейки с учетом горизонтального соседства
-        const freeCellIndices = gridCells
-            .map((_, index) => index)
-            .filter(index => !blockedCellIndices.has(index));
-
-        // Добавляем новые цифры
-        if (redRoomIds.length > 0 && activeNumbers.length < maxActiveNumbers && freeCellIndices.length > 0 && Math.random() > 0.7) {
-            const randomId = redRoomIds[Math.floor(Math.random() * redRoomIds.length)];
-            const isAlreadyVisible = activeNumbers.some(num => num.id === randomId);
-
-            if (!isAlreadyVisible) {
-                const randomCellIndex = freeCellIndices[Math.floor(Math.random() * freeCellIndices.length)];
-                const targetCell = gridCells[randomCellIndex];
-
-                activeNumbers.push(new PaintNumber(randomId, randomCellIndex, targetCell));
-            }
-        }
-
-        // Обновляем и отрисовываем активные элементы
-        activeNumbers.forEach(num => {
-            num.update();
-            num.draw();
-        });
-
-        // Удаляем завершившие анимацию цифры
-        activeNumbers = activeNumbers.filter(num => num.state !== 'dead');
-    }
-
-    setInterval(draw, speedInterval);
+// Безопасная инициализация после загрузки шрифтов (важно для правильного рендера шрифта LeviBrush на Canvas)
+if (document.fonts) {
+    document.fonts.ready.then(function() {
+        console.log('Шрифты загружены. Запуск анимации матрицы.');
+        initializeApp();
+    });
+} else {
+    window.onload = function() {
+        setTimeout(initializeApp, 1000);
+    };
+}
 </script>
-
 </body>
 </html>

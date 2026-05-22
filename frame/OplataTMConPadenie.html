@@ -4,16 +4,53 @@
 <title>ЖК Дмитриевский</title>
 </head>
 <style>
-html { -webkit-text-size-adjust: none; text-size-adjust: none; }
-body { 
-    margin: 0; 
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-    background: #0f172a; 
-    color: white; 
-    overflow-x: hidden; 
-}
-.header { padding: 10px; text-align: center; font-size: 26px; font-weight: 600; letter-spacing: 1px; background: #111827; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-#grid { display: grid; grid-template-columns: repeat(10, 90px); gap: 12px; justify-content: center; padding: 30px; }
+	html { 
+		-webkit-text-size-adjust: none; 
+		text-size-adjust: none; 
+		width: 100%; 
+		height: 100%; 
+		overflow: hidden; 
+	} 
+
+	body { 
+		margin: 0; 
+		width: 100%; 
+		height: 100%; 
+		overflow: hidden; 
+		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+		background: #0f172a; 
+		color: white; 
+		
+		/* Включаем Flexbox для выравнивания */
+		display: flex;
+		flex-direction: column; /* Элементы идут сверху вниз: Шапка -> Сетка */
+		align-items: center;    /* Центрирует шапку и сетку строго по горизонтали */
+		justify-content: flex-start; /* Намертво прижимает всё к самому верху экрана */
+	}
+ 
+ 
+	.header { 
+		width: 100%; /* Шапка растягивается на всю ширину */
+		box-sizing: border-box;
+		padding: 10px; 
+		text-align: center; 
+		font-size: 26px; 
+		font-weight: 600; 
+		letter-spacing: 1px; 
+		background: #111827; 
+		box-shadow: 0 2px 10px rgba(0,0,0,0.5); 
+	}
+
+	#grid { 
+		display: grid; 
+		grid-template-columns: repeat(10, 90px); 
+		gap: 12px; 
+		justify-content: center; 
+		padding: 30px; 
+		width: 100%;
+		max-width: 1080px; /* Сетка центрируется в пределах этой ширины */
+		box-sizing: border-box;
+	}
 .cell { width: 90px; height: 70px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.3s; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4); position: relative; box-sizing: border-box; }
 .cell:hover { transform: scale(1.05); }
 .number { font-size: 36px; font-weight: bold; line-height: 1; margin: 0; position: relative; top: -12px; }

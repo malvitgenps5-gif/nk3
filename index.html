@@ -75,180 +75,210 @@
 <script>
 // !!! ВСТАВЬТЕ СЮДА ВАШУ ССЫЛКУ НА CSV ИЗ GOOGLE ТАБЛИЦ !!!
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQJOCD4_INUxusWkaSaPbGhGBh5tMVAylQrQ4zYLK7DYunMhYkxOpC9mm4phbM3xKqmo073qzGgntE/pub?gid=469920882&single=true&output=csv'; 
-
 const CACHE_KEY = 'sheet_data';
 const TIMESTAMP_KEY = 'sheet_timestamp';
-const TTL = 5 * 60 * 1000; // 5 минут кеша для данных таблицы
-
-async function getSharedData() {
-  const cached = localStorage.getItem(CACHE_KEY);
-  const lastUpdate = parseInt(localStorage.getItem(TIMESTAMP_KEY), 10);
-  const now = Date.now();
-
-  if (cached && lastUpdate && (now - lastUpdate < TTL)) {
-    console.log('Данные CSV взяты из LocalStorage');
-    return cached;
-  }
-
-  try {
-    console.log('Сетевой запрос за новым CSV...');
-    const response = await fetch(CSV_URL);
-    const data = await response.text();
-    localStorage.setItem(CACHE_KEY, data);
-    localStorage.setItem(TIMESTAMP_KEY, now.toString());
-    return data;
-  } catch (err) {
-    console.error('Ошибка загрузки CSV, взят старый кеш:', err);
-    return cached;
-  }
-}
+const REFRESH_INTERVAL = 300000; // 5 минут (300 000 мс)
 
 let pages = [];
 let current = 0;
-let timerId = null;
+let timerId = null; // Для управления таймаутом слайдов
+let timeLeft = REFRESH_INTERVAL; // Для визуального таймера
 
-// Парсинг полученной CSV строки
+// 1. Получение данных (Исправлена логика TTL - теперь запрашивает сеть строго вовремя)
+async function getSharedData(forceNetwork = false) {
+    const cached = localStorage.getItem(CACHE_KEY);
+    const lastUpdate = parseInt(localStorage.getItem(TIMESTAMP_KEY), 10);
+    const now = Date.now();
+
+    // Забираем из кеша только если не прошёл интервал И если это не плановое обновление
+    if (!forceNetwork && cached && lastUpdate && (now - lastUpdate < REFRESH_INTERVAL - 2000)) {
+        console.log('Данные CSV взяты из LocalStorage');
+        return cached;
+    }
+
+    try {
+        console.log('Сетевой запрос за новым CSV...');
+        // Добавляем timestamp к URL, чтобы сам браузер не кешировал ответ Google
+        const response = await fetch(`${CSV_URL}${CSV_URL.includes('?') ? '&' : '?'}t=${now}`);
+        const data = await response.text();
+        
+        if (!data || data.trim() === "") throw new Error("Получена пустая строка");
+
+        localStorage.setItem(CACHE_KEY, data);
+        localStorage.setItem(TIMESTAMP_KEY, now.toString());
+        return data;
+    } catch (err) {
+        console.error('Ошибка загрузки CSV, взят старый кеш:', err);
+        return cached;
+    }
+}
+
+// 2. Парсинг полученной CSV строки
 function parseCSV(csv) {
-  const rows = csv.split("\n").map(r => r.split(","));
-  const headers = rows[0].map(h => h.trim());
-  const urlIdx = headers.indexOf("url");
-  const durationIdx = headers.indexOf("duration");
+    if (!csv) return [];
+    const rows = csv.split("\n").map(r => r.split(","));
+    const headers = rows[0].map(h => h.trim());
+    const urlIdx = headers.indexOf("url");
+    const durationIdx = headers.indexOf("duration");
 
-  return rows.slice(1)
-    .map(row => ({
-      url: row[urlIdx]?.trim() || "",
-      duration: parseInt(row[durationIdx]?.trim(), 10) || 30000
-    }))
-    .filter(page => page.url !== "" && !isNaN(page.duration));
+    if (urlIdx === -1) {
+        console.error("Ошибка: В CSV не найден столбец 'url'");
+        return [];
+    }
+
+    return rows.slice(1)
+        .map(row => ({
+            url: row[urlIdx]?.trim() || "",
+            duration: parseInt(row[durationIdx]?.trim(), 10) || 30000
+        }))
+        .filter(page => page.url !== "" && !isNaN(page.duration));
 }
 
-// Создание только уникальных фреймов в DOM
+// 3. Создание только уникальных фреймов в DOM (Добавлен data-base-src для безопасного сброса кеша)
 function createAllFrames() {
-  const container = document.getElementById("container");
-  container.innerHTML = ""; 
+    const container = document.getElementById("container");
+    if (!container) return;
+    container.innerHTML = ""; 
 
-  // Убираем дубликаты URL для экономии памяти
-  const uniqueUrls = [...new Set(pages.map(page => page.url))];
-
-  uniqueUrls.forEach((url) => {
-    const iframe = document.createElement("iframe");
-    // Хешируем URL в безопасную строку для использования в ID
-    iframe.id = `frame_${btoa(url).replace(/=/g, '')}`; 
-    iframe.src = "frame/" + url;
-    iframe.className = "my-frame";
-    iframe.tabIndex = "-1"; 
-    container.appendChild(iframe);
-  });
-  
-  console.log(`Массив шагов: ${pages.length}. Создано уникальных фреймов в DOM: ${uniqueUrls.length}`);
+    const uniqueUrls = [...new Set(pages.map(page => page.url))];
+    uniqueUrls.forEach((url) => {
+        const iframe = document.createElement("iframe");
+        iframe.id = `frame_${btoa(url).replace(/=/g, '')}`;
+        
+        const fullSrc = "frame/" + url;
+        iframe.src = fullSrc;
+        iframe.setAttribute('data-base-src', fullSrc); // Сохраняем чистый путь для reloadAllFrames
+        iframe.className = "my-frame";
+        iframe.tabIndex = "-1";
+        container.appendChild(iframe);
+    });
+    console.log(`Массив шагов: ${pages.length}. Создано уникальных фреймов в DOM: ${uniqueUrls.length}`);
 }
 
-// Показ следующего слайда (порядок из CSV полностью сохранен)
+// 4. Показ следующего слайда (Исправлена потенциальная ошибка с undefined)
 function showNext() {
-  if (pages.length === 0) return;
+    if (pages.length === 0) return;
 
-  // Скрываем старый активный фрейм
-  const activeFrame = document.querySelector(".my-frame.active");
-  if (activeFrame) {
-    activeFrame.classList.remove("active");
-    activeFrame.tabIndex = "-1";
-  }
-
-  const currentPage = pages[current];
-  const frameId = `frame_${btoa(currentPage.url).replace(/=/g, '')}`;
-  const nextFrame = document.getElementById(frameId);
-  
-  if (nextFrame) {
-    nextFrame.classList.add("active");
-    nextFrame.tabIndex = "0";
-
-    // --- ДОБАВЛЕННЫЙ БЛОК ДЛЯ ОБНОВЛЕНИЯ ДАННЫХ ВНУТРИ ФРЕЙМА ---
-    // Проверяем, что фрейм полностью загрузился и у него есть функция обновления
-    if (nextFrame.contentWindow && typeof nextFrame.contentWindow.updateFrameData === 'function') {
-      console.log(`Передаем новые данные во фрейм: ${currentPage.url}`);
-      // Вызываем функцию внутри фрейма и передаем туда данные текущей строки CSV
-      nextFrame.contentWindow.updateFrameData(currentPage); 
+    // Скрываем старый активный фрейм
+    const activeFrame = document.querySelector(".my-frame.active");
+    if (activeFrame) {
+        activeFrame.classList.remove("active");
+        activeFrame.tabIndex = "-1";
     }
-    // -----------------------------------------------------------
-  } else {
-    console.error(`Фрейм для URL ${currentPage.url} не найден в DOM`);
-  }
 
-  current = (current + 1) % pages.length;
-  timerId = setTimeout(showNext, currentPage.duration);
+    // Защита от выхода за пределы массива при динамическом изменении страниц
+    if (current >= pages.length) current = 0;
+
+    const currentPage = pages[current];
+    const frameId = `frame_${btoa(currentPage.url).replace(/=/g, '')}`;
+    const nextFrame = document.getElementById(frameId);
+
+    if (nextFrame) {
+        nextFrame.classList.add("active");
+        nextFrame.tabIndex = "0";
+
+        // Передаем данные внутрь фрейма, если он готов
+        if (nextFrame.contentWindow && typeof nextFrame.contentWindow.updateFrameData === 'function') {
+            console.log(`Передаем новые данные во фрейм: ${currentPage.url}`);
+            nextFrame.contentWindow.updateFrameData(currentPage);
+        }
+    } else {
+        console.error(`Фрейм для URL ${currentPage.url} не найден в DOM`);
+    }
+
+    current = (current + 1) % pages.length;
+    
+    // Перезапускаем таймаут
+    clearTimeout(timerId);
+    timerId = setTimeout(showNext, currentPage.duration);
 }
 
-
-// Принудительное обновление содержимого фреймов из сети (для GitHub Pages)
+// 5. Принудительное обновление содержимого фреймов (Исправлено чтение путей через data-атрибут)
 function reloadAllFrames() {
-  console.log("Принудительное обновление контента страниц внутри фреймов...");
-  const frames = document.querySelectorAll(".my-frame");
-  
-  frames.forEach(iframe => {
-    const baseUrl = iframe.src.split('?')[0]; 
-    // Добавление ?v= заставляет браузер игнорировать кеш GitHub Pages
-    iframe.src = baseUrl + "?v=" + Date.now();
-  });
+    console.log("Принудительное обновление контента страниц внутри фреймов (Раз в час)...");
+    const frames = document.querySelectorAll(".my-frame");
+    frames.forEach(iframe => {
+        const baseSrc = iframe.getAttribute('data-base-src') || iframe.src.split('?')[0];
+        iframe.src = baseSrc + "?v=" + Date.now();
+    });
 }
 
-// Фоновое обновление списка страниц из CSV
+// 6. Фоновое обновление списка страниц (Добавлен сброс таймера слайдов при изменениях)
 async function refreshPagesList() {
-  const csv = await getSharedData();
-  if (!csv) return;
+    const csv = await getSharedData(true); // Передаем true, заставляя сделать реальный сетевой запрос
+    if (!csv) return;
+    
+    const newPages = parseCSV(csv);
+    if (newPages.length > 0) {
+        const oldUrls = pages.map(p => p.url).join(',');
+        const newUrls = newPages.map(p => p.url).join(',');
+        
+        pages = newPages;
+        console.log('Список шагов обновлен в фоне. Всего:', pages.length);
 
-  const newPages = parseCSV(csv);
-  if (newPages.length > 0) {
-    // Проверяем, изменился ли сам состав URL-адресов
-    const oldUrls = pages.map(p => p.url).join(',');
-    const newUrls = newPages.map(p => p.url).join(',');
-
-    pages = newPages;
-    console.log('Список шагов обновлен в фоне. Всего:', pages.length);
-
-    // Если состав ссылок изменился, перестраиваем фреймы в DOM
-    if (oldUrls !== newUrls) {
-      console.log('Состав страниц изменился, перестраиваем фреймы...');
-      createAllFrames();
+        if (oldUrls !== newUrls) {
+            console.log('Состав страниц изменился, полностью перестраиваем фреймы и перезапускаем слайдер...');
+            clearTimeout(timerId); // Останавливаем старый цикл слайдов, чтобы не было наложения
+            current = 0;
+            createAllFrames();
+            showNext(); // Запуск с первой страницы обновленного списка
+        }
     }
-  }
 }
 
-// Старт приложения при первой загрузке
-getSharedData().then(csv => {
-  if (!csv) return;
-  pages = parseCSV(csv);
+// 7. СИНХРОНИЗИРОВАННЫЙ ТАЙМЕР (Единый секундный тик для интерфейса и логики)
+function updateTimerDisplay() {
+    const minutes = Math.floor(timeLeft / 60000);
+    const seconds = Math.floor((timeLeft % 60000) / 1000);
+    
+    const displayMinutes = String(minutes).padStart(2, '0');
+    const displaySeconds = String(seconds).padStart(2, '0');
+    
+    const timerElement = document.getElementById('countdown-timer');
+    if (timerElement) {
+        timerElement.textContent = `${displayMinutes}:${displaySeconds}`;
+    }
+}
 
-  if (pages.length > 0) {
-    createAllFrames();
-    showNext();
-  }
-});
+setInterval(() => {
+    timeLeft -= 1000;
+    
+    if (timeLeft <= 0) {
+        timeLeft = REFRESH_INTERVAL; // Сбрасываем счетчик обратно на 5 минут
+        refreshPagesList();          // Вызываем обновление данных СТРОГО в момент 00:00 на экране
+    }
+    
+    updateTimerDisplay();
+}, 1000);
 
-// ТАЙМЕРЫ АВТООБНОВЛЕНИЯ CONTEXT
-setInterval(refreshPagesList, 300000);  // Проверка таблицы CSV каждые 5 минут
-setInterval(reloadAllFrames, 3600000);  // Перезагрузка файлов страниц из сети каждый 1 час
+// 8. ВТОРОЙ НЕЗАВИСИМЫЙ ТАЙМЕР (Перезагрузка файлов из сети раз в 1 час)
+setInterval(reloadAllFrames, 3600000);
 
-// Автоматическое сжатие всего слайдера под размеры текущего окна браузера
+// 9. Автоматическое сжатие слайдера под размеры окна
 function resizeMainViewport() {
     const container = document.getElementById("container");
     if (!container) return;
-
     const targetWidth = 1080;
     const targetHeight = 1920;
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
-
-    // Вычисляем идеальный коэффициент, чтобы контейнер поместился целиком
     const scale = Math.min(windowWidth / targetWidth, windowHeight / targetHeight);
-    
-    // Применяем масштабирование к главному контейнеру
     container.style.transform = `scale(${scale})`;
 }
-
-// Запускаем при загрузке и при каждом изменении размеров окна
 window.addEventListener('resize', resizeMainViewport);
-// Небольшая задержка, чтобы DOM успел полностью построиться
 setTimeout(resizeMainViewport, 100);
+
+// СТАРТ ПРИЛОЖЕНИЯ ПРИ ПЕРВОЙ ЗАГРУЗКЕ
+getSharedData(false).then(csv => {
+    if (!csv) return;
+    pages = parseCSV(csv);
+    if (pages.length > 0) {
+        createAllFrames();
+        showNext();
+    }
+    updateTimerDisplay(); // Сразу рисуем 05:00
+});
+
 </script>
 </body>
 </html>

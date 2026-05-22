@@ -67,10 +67,28 @@
     opacity: 1;
     pointer-events: auto;
   }
+#countdown-timer {
+    position: fixed !important; /* !important гарантирует приоритет */
+    bottom: 15px !important;
+    right: 15px !important;
+    z-index: 999999 !important; /* Максимальный приоритет поверх любых фреймов */
+    
+    /* Внешний вид */
+    /* background-color: rgba(0, 0, 0, 0.6) !important; /* Чуть темнее для контраста */
+    color: rgba(255, 255, 255, 0.2) !important; 
+    padding: 6px 12px !important;
+    border-radius: 5px !important;
+    font-family: monospace !important;
+    font-size: 16px !important; /* Немного увеличили размер для видимости */
+    
+    /* Игнорирование мыши и фокусов */
+    pointer-events: none !important; 
+    user-select: none !important;
+}
 </style>
 </head>
 <body>
-
+<div id="countdown-timer">05:00</div>
   <div id="container" class="frame-container">
     <!-- Фреймы создаются автоматически скриптом -->
   </div>

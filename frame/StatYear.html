@@ -56,15 +56,15 @@ body {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8); 
 }
 .gold {
-  background: #ffad00 !important; /* Приоритет для золотого цвета */
-  
+  background: #ffd700 !important; /* Приоритет для золотого цвета#ffad00 */
+  color: #333 !important;
 }
 .gold .number {
   text-shadow: none; /* Убираем тень текста на золотых ячейках */
 }
 .goldd {
-  background: #ffd700 !important; /* Приоритет для золотого цвета */
-  color: #333 !important;
+  background: #16a34a !important; /* Приоритет для золотого цвета #ffd700 */
+ /* color: #333 !important;*/
 }
 .goldd .number {
   text-shadow: none; /* Убираем тень текста на золотых ячейках */
@@ -89,7 +89,7 @@ const year = now.getFullYear();
 document.getElementById('current-month').innerText = `${month}/${year}`;
 
 // Базовые цвета для градиента (можно настроить под себя)
-const GREEN_COLOR = "#3dd5c0"; // Насыщенный зеленый
+const GREEN_COLOR = "#16a34a"; // Насыщенный зеленый #3dd5c0
 const RED_COLOR = "#dc2626";   // Насыщенный красный
 
 window.updateFrameData = function(pageData) {

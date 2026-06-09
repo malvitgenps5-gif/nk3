@@ -5,176 +5,193 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ЖК Дмитриевский</title>
 <style>
-html {
-  -webkit-text-size-adjust: none;
-  text-size-adjust: none;
+html { -webkit-text-size-adjust: none; text-size-adjust: none; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #0f172a; color: white; }
+.header { padding: 10px; text-align: center; font-size: 26px; font-weight: 600; letter-spacing: 1px; background: #111827; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+#grid { display: grid; grid-template-columns: repeat(10, 90px); gap: 12px; justify-content: center; padding: 30px; }
+
+/* Базовая ячейка */
+.cell { 
+    width: 90px; 
+    height: 70px; 
+    border-radius: 10px; 
+    display: grid;
+    /* Сетка 3 строки по вертикали, 4 колонки по горизонтали */
+    grid-template-rows: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-flow: column; /* Заполнение: сначала вниз по колонке, потом следующая колонка */
+    gap: 1px; /* Тонкая граница между месяцами */
+    background: #1e293b; /* Цвет границ между секторами */
+    overflow: hidden;
+    transition: 0.3s; 
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4); 
+    position: relative; 
+    box-sizing: border-box; 
 }
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: #0f172a;
-  color: white;
+.cell:hover { transform: scale(1.05); }
+
+/* Сектор месяца */
+.month-sector {
+    width: 100%;
+    height: 100%;
 }
-.header {
-  padding: 10px;
-  text-align: center;
-  font-size: 26px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  background: #111827;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+
+/* Абсолютное позиционирование номера поверх секторов */
+.number { 
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 36px; 
+    font-weight: bold; 
+    line-height: 1; 
+    margin: 0; 
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.9); 
+    pointer-events: none; 
+    z-index: 10;
 }
-#grid {
-  display: grid;
-  grid-template-columns: repeat(10, 90px);
-  gap: 12px;
-  justify-content: center;
-  padding: 30px;
+
+/* Особые статусы ячеек полностью перекрывают внутреннюю сетку */
+.gold { 
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: #ffd700 !important; 
+    color: #333 !important; 
 }
-.cell {
-  width: 90px;
-  height: 70px;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: 0.3s;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-  position: relative;
-  box-sizing: border-box;
+.gold .number { text-shadow: none; position: static; transform: none; }
+
+.goldd { 
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: #16a34a !important; 
 }
-.cell:hover {
-  transform: scale(1.05);
+.goldd .number { text-shadow: none; position: static; transform: none; }
+
+.red { 
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: #dc2626 !important; 
 }
-.number {
-  font-size: 36px;
-  font-weight: bold;
-  line-height: 1;
-  margin: 0;
-  /* Тень для текста, чтобы номер квартиры легко читался на любом стыке цветов */
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8); 
-}
-.gold {
-  background: #ffd700 !important; /* Приоритет для золотого цвета#ffad00 */
-  color: #333 !important;
-}
-.gold .number {
-  text-shadow: none; /* Убираем тень текста на золотых ячейках */
-}
-.goldd {
-  background: #16a34a !important; /* Приоритет для золотого цвета #ffd700 */
- /* color: #333 !important;*/
-}
-.goldd .number {
-  text-shadow: none; /* Убираем тень текста на золотых ячейках */
-}
-.pust {
-  width: 90px;
-  height: 70px;
-}
+.red .number { text-shadow: none; position: static; transform: none; }
+
+
+.pust { width: 90px; height: 70px; }
 </style>
 </head>
 <body>
-
-<div class="header">
-  Консьерж НК3(статистика за текущий год) <span id="current-month"></span>
-</div>
+<div class="header"> Консьерж НК3(статистика за текущий год) <span id="current-month"></span> </div>
 <div id="grid"></div>
-
 <script>
 const now = new Date();
 const month = String(now.getMonth() + 1).padStart(2, '0');
 const year = now.getFullYear();
 document.getElementById('current-month').innerText = `${month}/${year}`;
 
-// Базовые цвета для градиента (можно настроить под себя)
-const GREEN_COLOR = "#16a34a"; // Насыщенный зеленый #3dd5c0
-const RED_COLOR = "#dc2626";   // Насыщенный красный
+const GREEN_COLOR = "#16a34a"; // Оплаченный месяц
+const RED_COLOR = "#dc2626"; // Неоплаченный месяц
 
 window.updateFrameData = function(pageData) {
-  console.log('Фрейм получил команду на обновление данных локально.');
-  
-  const csv = localStorage.getItem('sheet_data');
-  if (!csv) return;
-  
-  const rows = csv.split(/\r?\n/).filter(row => row.trim() !== "");
-  const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
-  
-  const idIdx = headers.indexOf("id");
-  
-  // Укажите здесь точное название колонки из таблицы (сейчас указано 'months')
-  const columnName = "months"; 
-  const monthsIdx = headers.indexOf(columnName);
-
-  const resultData = rows.slice(1).map(rowStr => {
-    const row = rowStr.split(",");
-    const rawMonths = parseInt(row[monthsIdx]?.trim()) || 0;
+    console.log('Фрейм получил команду на обновление данных локально.');
+    const csv = localStorage.getItem('sheet_data');
+    if (!csv) return;
     
-    // Ограничиваем строго от 0 до 12 месяцев
-    const monthsCount = Math.min(Math.max(rawMonths, 0), 12);
+    const rows = csv.split(/\r?\n/).filter(row => row.trim() !== "");
+    const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
+    const idIdx = headers.indexOf("id");
     
-    // Переводим в проценты (например, 6 месяцев = 50%)
-    const percentValue = (monthsCount / 12) * 100;
-
-    return {
-      id: row[idIdx]?.trim() || "",
-      percent: percentValue,
-      months: monthsCount
-    };
-  });
-  
-  render(resultData);
-  console.log('Данные успешно обновлены.');
-  
-  if (typeof selectNextNumber === "function") {
-    selectNextNumber();
-  }
+    // Ищем индексы для столбцов m1, m2, ..., m12
+    const monthIndices = [];
+    for (let i = 1; i <= 12; i++) {
+        monthIndices.push(headers.indexOf(`m${i}`));
+    }
+    
+    const resultData = rows.slice(1).map(rowStr => {
+        const row = rowStr.split(",");
+        
+        // Массив статусов для каждого из 12 месяцев (true - оплачен, false - нет)
+        const monthsPaidStatus = monthIndices.map(idx => {
+            if (idx === -1) return false; // Если колонка не найдена в файле
+            const val = row[idx]?.trim();
+            // Месяц считается оплаченным, если ячейка не пустая и не равна "0" или "false"
+            return val !== undefined && val !== "" && val !== "0" && val.toLowerCase() !== "false";
+        });
+        
+        // Считаем общее количество оплаченных месяцев для логики золотой ячейки (12 из 12)
+        const monthsCount = monthsPaidStatus.filter(Boolean).length;
+        
+        return { 
+            id: row[idIdx]?.trim() || "", 
+            months: monthsCount,
+            paidStatus: monthsPaidStatus // Передаем детальный массив статусов по месяцам
+        };
+    });
+    
+    render(resultData);
+    console.log('Данные успешно обновлены.');
+    if (typeof selectNextNumber === "function") {
+        selectNextNumber();
+    }
 };
 
 function render(data) {
-  const grid = document.getElementById("grid");
-  if (!grid) return;
-  grid.innerHTML = "";
-  
-  data.forEach(item => {
-    const cell = document.createElement("div");
-    const idLower = String(item.id).toLowerCase();
+    const grid = document.getElementById("grid");
+    if (!grid) return;
+    grid.innerHTML = "";
     
-    // 1. Проверяем на служебную ячейку (индекс содержит 'i')
-    if (idLower.includes('i')) {
-      cell.className = "cell gold";
-      cell.innerHTML = `<div class="number">${item.id.replace(/i/gi, "")}</div>`;
-    } 
-    // 2. Проверяем на пустую ячейку
-    else if (item.id === "0" || item.id === "") {
-      cell.className = "pust";
-    } 
-    // 3. Если 12 месяцев из 12 (100%) — красим в золотой цвет
-    else if (item.months === 12) {
-      cell.className = "cell goldd";
-      cell.innerHTML = `<div class="number">${item.id}</div>`;
-    } 
-    // 4. Обычная ячейка с круговой секторной заливкой
-    else {
-      cell.className = "cell";
-      
-      const pct = item.percent;
-      
-      // conic-gradient создает заливку секторами по часовой стрелке от 12 часов
-      cell.style.background = `conic-gradient(${GREEN_COLOR} 0%, ${GREEN_COLOR} ${pct}%, ${RED_COLOR} ${pct}%, ${RED_COLOR} 100%)`;
-      
-      cell.innerHTML = `<div class="number">${item.id}</div>`;
-    }
-    grid.appendChild(cell);
-  });
+    data.forEach(item => {
+        const cell = document.createElement("div");
+        const idLower = String(item.id).toLowerCase();
+        
+        // 1. Служебная ячейка
+        if (idLower.includes('i')) {
+            cell.className = "cell gold";
+            cell.innerHTML = `<div class="number">${item.id.replace(/i/gi, "")}</div>`;
+        } 
+        // 2. Пустая ячейка
+        else if (item.id === "0" || item.id === "") {
+            cell.className = "pust";
+        } 
+        // 3. Полностью заполнена (все 12 месяцев оплачены)
+        else if (item.months === 12) {
+            cell.className = "cell goldd";
+            cell.innerHTML = `<div class="number">${item.id}</div>`;
+        } 
+		else if (item.months === 0) {
+            cell.className = "cell red";
+            cell.innerHTML = `<div class="number">${item.id}</div>`;
+        } 
+        // 4. Обычная ячейка с детальной сеткой по месяцам
+        else {
+            cell.className = "cell";
+            
+            // Генерируем 12 блоков. Свойство grid-auto-flow уложит их:
+            // 1,2,3 - в 1-й столбец; 4,5,6 - во 2-й и т.д.
+            for (let m = 0; m < 12; m++) {
+                const sector = document.createElement("div");
+                sector.className = "month-sector";
+                
+                // Красим сектор на основе конкретного статуса этого месяца из таблицы
+                const isPaid = item.paidStatus[m];
+                sector.style.backgroundColor = isPaid ? GREEN_COLOR : RED_COLOR;
+                
+                cell.appendChild(sector);
+            }
+            
+            // Добавляем номер квартиры поверх сетки
+            const numDiv = document.createElement("div");
+            numDiv.className = "number";
+            numDiv.innerText = item.id;
+            cell.appendChild(numDiv);
+        }
+        grid.appendChild(cell);
+    });
 }
 
-
-
-// Первичный запуск при наличии данных
 if (localStorage.getItem('sheet_data')) {
-  window.updateFrameData();
+    window.updateFrameData();
 }
 </script>
 </body>

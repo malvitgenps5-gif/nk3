@@ -1,0 +1,354 @@
+<!DOCTYPE html><html lang="ru"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ЖК Дмитриевский</title>
+</head>
+
+<style>
+html {
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+}
+
+body {
+  margin: 0;
+  /* Добавили системный шрифт Android (Roboto) в приоритет для стабильности */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #0f172a;
+  color: white;
+}
+
+.header {
+  padding: 10px;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  background: #111827;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+#grid {
+  display: grid;
+  grid-template-columns: repeat(10, 90px);
+  gap: 12px;
+  justify-content: center;
+  padding: 30px;
+}
+
+.cell {
+  width: 90px;
+  height: 70px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Теперь по умолчанию центр */
+  transition: 0.3s;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  position: relative;
+  box-sizing: border-box;
+}
+
+.cell:hover {
+  transform: scale(1.05);
+}
+
+/* Настройки для обычных чисел */
+.number {
+  font-size: 36px;
+  font-weight: bold;
+  line-height: 1;
+  margin: 0;
+  position: relative;
+  top: -12px; /* Компенсируем место для кружков снизу */
+}
+
+.green { background: #16a34a; }
+.red { background: #dc2626; }
+
+/* Настройки для золотых ячеек */
+.gold {
+  background: #ffd700;
+  color: #333;
+  font-size: 36px;
+  font-weight: bold;
+  line-height: 1;
+  /* В золотых ячейках нет кружков, поэтому justify-content:center сработает идеально */
+}
+
+.circles {
+  display: flex;
+  gap: 12px;
+  position: absolute;
+  bottom: 6px; /* Фиксируем кружки строго внизу */
+}
+
+.circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #374151;
+  box-shadow: 0 0 5px rgba(0,0,0,0.6);
+}
+
+.circle.green { background: #22c55e; }
+.circle.red { background: #ef4444; }
+
+.footer {
+  text-align: center;
+  padding: 10px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.pust {
+  width: 90px;
+  height: 70px;
+}
+/* Базовый класс анимации сбоя для ячейки */
+.matrix-glitch {
+  position: relative !important;
+  animation: glitch-shake 0.2s infinite steps(2), matrix-glow 0.5s ease-in-out !important;
+  overflow: hidden;
+  z-index: 10;
+}
+
+/* Эффект псевдоэлементов для создания цифровых артефактов */
+.matrix-glitch::before,
+.matrix-glitch::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: inherit;
+  opacity: 0.8;
+  z-index: -1;
+}
+
+.matrix-glitch::before {
+  left: 2px;
+  text-shadow: -2px 0 #00ff00;
+  clip: rect(10px, 9999px, 30px, 0);
+  animation: glitch-clip-1 0.5s infinite linear alternate-reverse;
+}
+
+.matrix-glitch::after {
+  left: -2px;
+  text-shadow: -2px 0 #00ccff;
+  clip: rect(40px, 9999px, 60px, 0);
+  animation: glitch-clip-2 0.5s infinite linear alternate-reverse;
+}
+
+/* Класс финального схлопывания ячейки */
+.matrix-glitch.collapse {
+  animation: matrix-collapse 0.35s cubic-bezier(0.785, 0.135, 0.15, 0.86) forwards !important;
+}
+
+/* Превращаем пустое место на месте исчезнувшей ячейки в невидимый блок (сохраняя геометрию сетки) */
+.cell-vanished {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none;
+}
+
+/* --- Ключевые кадры (Keyframes) --- */
+@keyframes glitch-shake {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0); }
+}
+
+@keyframes glitch-clip-1 {
+  0% { clip: rect(5px, 9999px, 25px, 0); }
+  100% { clip: rect(20px, 9999px, 10px, 0); }
+}
+@keyframes glitch-clip-2 {
+  0% { clip: rect(15px, 9999px, 5px, 0); }
+  100% { clip: rect(35px, 9999px, 30px, 0); }
+}
+
+@keyframes matrix-glow {
+  0% { box-shadow: 0 0 0px #00ff00; }
+  50% { box-shadow: 0 0 20px #00ff00; }
+  100% { box-shadow: 0 0 0px #00ff00; }
+}
+
+@keyframes matrix-collapse {
+  0% { transform: scaleY(1) scaleX(1); opacity: 1; }
+  50% { transform: scaleY(0.05) scaleX(1.1); background-color: #00ff00; opacity: 0.8; }
+  100% { transform: scaleY(0) scaleX(0); opacity: 0; }
+}
+</style>
+
+<body>
+
+<div class="header">
+Консьерж НК3 <span id="current-month"></span>
+</div><div id="grid"></div>
+<script>
+// Вывод текущего месяца
+const currentMonthEl = document.getElementById('current-month');
+if (currentMonthEl) {
+  const nowTime = new Date();
+  const month = String(nowTime.getMonth() + 1).padStart(2, '0');
+  const year = nowTime.getFullYear();
+  currentMonthEl.innerText = `${month}/${year}`;
+}
+
+// Переменная для хранения таймера уничтожения, чтобы сбрасывать её при получении новых данных
+let glitchSequenceTimeout = null;
+let glitchIntervals = [];
+
+window.updateFrameData = function(pageData) {
+  console.log('Фрейм получил команду на обновление данных локально.');
+  
+  // Очищаем старые таймеры уничтожения, если данные обновились до того, как всё исчезло
+  clearTimeout(glitchSequenceTimeout);
+  glitchIntervals.forEach(clearInterval);
+  glitchIntervals = [];
+
+  const csv = localStorage.getItem('sheet_data');
+  if (!csv) {
+    console.warn('Кэш sheet_data пуст.');
+    return;
+  }
+
+  const rows = csv.split(/\r?\n/).filter(row => row.trim() !== "");
+  if (rows.length === 0) return;
+
+  const headers = rows[0].split(",").map(h => h.trim().toLowerCase());
+  const idIdx = headers.indexOf("id");
+  const currentIdx = headers.indexOf("current");
+  const prevIdx = headers.indexOf("prev");
+  const nextIdx = headers.indexOf("next");
+
+  const resultData = rows.slice(1).map(rowStr => {
+    const row = rowStr.split(",");
+    return {
+      id: row[idIdx]?.trim() || "",
+      current: row[currentIdx]?.trim() || "0",
+      prev: row[prevIdx]?.trim() || "0",
+      next: row[nextIdx]?.trim() || "0"
+    };
+  });
+
+  // 1. Сразу отображаем все элементы (и зеленые, и красные)
+  render(resultData);
+  console.log('Данные отрисованы. Запуск 5-секундного таймера до исчезновения.');
+
+  // 2. Ровно через 5 секунд запускаем процесс хаотичного удаления
+  glitchSequenceTimeout = setTimeout(() => {
+    startChaosDisappearance();
+  }, 3000); 
+};
+
+function render(data) {
+  const grid = document.getElementById("grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  data.forEach(item => {
+    const cell = document.createElement("div");
+    const idLower = String(item.id).toLowerCase();
+
+    if (idLower.includes('i')) {
+      cell.className = "cell gold";
+      cell.innerHTML = `<div>${item.id.replace(/i/gi, "")}</div>`;
+    } else if (item.id === "0" || item.id === "") {
+      cell.className = "pust";
+    } else {
+      cell.className = `cell ${item.current == "1" ? "green" : "red"}`;
+      cell.innerHTML = `
+        <div class="number">${item.id}</div>
+        <div class="circles">
+          <div class="circle ${item.prev == "1" ? "green" : "red"}"></div>
+          <div class="circle ${item.next == "1" ? "green" : "red"}"></div>
+        </div>
+      `;
+    }
+    grid.appendChild(cell);
+  });
+}
+
+// Функция хаотичного исчезновения зеленых ячеек группами по 5-10 штук
+function startChaosDisappearance() {
+  const grid = document.getElementById("grid");
+  if (!grid) return;
+
+  // Ищем все зеленые ячейки, которые еще НЕ исчезли
+  let greenCells = Array.from(grid.querySelectorAll('.cell.green:not(.cell-vanished)'));
+  
+  if (greenCells.length === 0) {
+    console.log('Все зеленые ячейки успешно уничтожены.');
+    return;
+  }
+
+  // Определяем случайный размер группы от 5 до 10 элементов
+  // Если оставшихся ячеек меньше 5, забираем все оставшиеся
+  const minBatch = 5;
+  const maxBatch = 10;
+  let batchSize = Math.floor(Math.random() * (maxBatch - minBatch + 1)) + minBatch;
+  if (batchSize > greenCells.length) {
+    batchSize = greenCells.length;
+  }
+
+  // Перемешиваем массив оставшихся ячеек случайным образом (алгоритм Фишера-Йетса)
+  for (let i = greenCells.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [greenCells[i], greenCells[j]] = [greenCells[j], greenCells[i]];
+  }
+
+  // Вырезаем группу нужного размера для одновременного уничтожения
+  const batchToDestroy = greenCells.slice(0, batchSize);
+
+  // Запускаем эффект глитча для всей выбранной группы одновременно
+  batchToDestroy.forEach(targetCell => {
+    const numEl = targetCell.querySelector('.number');
+
+    // Включаем глитч-эффект (тряску и артефакты)
+    targetCell.classList.add('matrix-glitch');
+
+    // Быстрая смена цифр на 0 и 1 внутри ячейки
+    const textChaosInterval = setInterval(() => {
+      if (numEl) numEl.textContent = Math.random() > 0.5 ? '1' : '0';
+    }, 40);
+    glitchIntervals.push(textChaosInterval);
+
+    // Через 300мс запускаем анимацию схлопывания ячейки
+    setTimeout(() => {
+      targetCell.classList.add('collapse');
+    }, 300);
+
+    // Через 650мс полностью скрываем ячейку, сохраняя геометрию грида
+    setTimeout(() => {
+      clearInterval(textChaosInterval);
+      targetCell.classList.remove('matrix-glitch', 'collapse');
+      targetCell.classList.add('cell-vanished');
+    }, 650);
+  });
+
+  // Запускаем уничтожение следующей группы.
+  // Задержка в 400мс подобрана так, чтобы следующая пачка начинала сбоить 
+  // в тот момент, когда предыдущая уже начала схлопываться. Это создаст плотный «цифровой ливень».
+  setTimeout(startChaosDisappearance, 400); 
+}
+
+function initializeApp() {
+  window.updateFrameData();
+}
+
+if (document.fonts) {
+  document.fonts.ready.then(function() {
+    initializeApp();
+  });
+} else {
+  window.onload = function() {
+    setTimeout(initializeApp, 1000);
+  };
+}
+</script>
+</body>
+</html>

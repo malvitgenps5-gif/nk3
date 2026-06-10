@@ -242,7 +242,7 @@ window.updateFrameData = function(pageData) {
   // 2. Ровно через 5 секунд запускаем процесс хаотичного удаления
   glitchSequenceTimeout = setTimeout(() => {
     startChaosDisappearance();
-  }, 1000); 
+  }, 3000); 
 };
 
 function render(data) {
@@ -312,22 +312,22 @@ function startChaosDisappearance() {
     targetCell.classList.add('matrix-glitch');
 
     // Быстрая смена цифр на 0 и 1 внутри ячейки
-    const textChaosInterval = setInterval(() => {
+    /*const textChaosInterval = setInterval(() => {
       if (numEl) numEl.textContent = Math.random() > 0.5 ? '1' : '0';
-    }, 40);
-    glitchIntervals.push(textChaosInterval);
+    }, 40);*/
+   // glitchIntervals.push(textChaosInterval);
 
     // Через 300мс запускаем анимацию схлопывания ячейки
     setTimeout(() => {
       targetCell.classList.add('collapse');
-    }, 300);
+    }, 600);
 
     // Через 650мс полностью скрываем ячейку, сохраняя геометрию грида
     setTimeout(() => {
-      clearInterval(textChaosInterval);
+     // clearInterval(textChaosInterval);
       targetCell.classList.remove('matrix-glitch', 'collapse');
       targetCell.classList.add('cell-vanished');
-    }, 650);
+    }, 1250);
   });
 
   // Запускаем уничтожение следующей группы.

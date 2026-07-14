@@ -203,7 +203,7 @@ let glitchSequenceTimeout = null;
 let glitchIntervals = [];
 
 window.updateFrameData = function(pageData) {
-  console.log('Фрейм получил команду на обновление данных локально.');
+  // 2026.07.14 закоментили лог console.log('Фрейм получил команду на обновление данных локально.');
   
   // Очищаем старые таймеры уничтожения, если данные обновились до того, как всё исчезло
   clearTimeout(glitchSequenceTimeout);
@@ -212,7 +212,7 @@ window.updateFrameData = function(pageData) {
 
   const csv = localStorage.getItem('sheet_data');
   if (!csv) {
-    console.warn('Кэш sheet_data пуст.');
+    // 2026.07.14 закоментили лог console.warn('Кэш sheet_data пуст.');
     return;
   }
 
@@ -237,7 +237,7 @@ window.updateFrameData = function(pageData) {
 
   // 1. Сразу отображаем все элементы (и зеленые, и красные)
   render(resultData);
-  console.log('Данные отрисованы. Запуск 5-секундного таймера до исчезновения.');
+  // 2026.07.14 закоментили лог console.log('Данные отрисованы. Запуск 5-секундного таймера до исчезновения.');
 
   // 2. Ровно через 5 секунд запускаем процесс хаотичного удаления
   glitchSequenceTimeout = setTimeout(() => {
@@ -282,7 +282,7 @@ function startChaosDisappearance() {
   let greenCells = Array.from(grid.querySelectorAll('.cell.green:not(.cell-vanished)'));
   
   if (greenCells.length === 0) {
-    console.log('Все зеленые ячейки успешно уничтожены.');
+    // 2026.07.14 закоментили лог console.log('Все зеленые ячейки успешно уничтожены.');
     return;
   }
 

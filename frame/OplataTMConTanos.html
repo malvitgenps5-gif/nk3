@@ -163,7 +163,7 @@
         let glitchIntervals = [];
 
         window.updateFrameData = function(pageData) {
-            console.log('Фрейм получил команду на обновление данных локально.');
+            // 2026.07.14 закоментили лог console.log('Фрейм получил команду на обновление данных локально.');
             
             // Очищаем старые таймеры уничтожения при обновлении
             clearTimeout(glitchSequenceTimeout);
@@ -172,7 +172,7 @@
 
             const csv = localStorage.getItem('sheet_data');
             if (!csv) {
-                console.warn('Кэш sheet_data пуст.');
+                // 2026.07.14 закоментили лог console.warn('Кэш sheet_data пуст.');
                 return;
             }
 
@@ -199,7 +199,7 @@
             render(resultData);
 
             // Ожидание 5 секунд перед исчезновением, чтобы слабая приставка успела загрузить DOM
-            console.log('Данные отрисованы. Запуск 5-секундного таймера до исчезновения.');
+            // 2026.07.14 закоментили лог console.log('Данные отрисованы. Запуск 5-секундного таймера до исчезновения.');
             glitchSequenceTimeout = setTimeout(() => {
                 startChaosDisappearance();
             }, 3000);
@@ -245,7 +245,7 @@ function startChaosDisappearance() {
     // Ищем все зеленые ячейки, которые еще НЕ исчезли
     let greenCells = Array.from(grid.querySelectorAll('.cell.green:not(.cell-vanished)'));
     if (greenCells.length === 0) {
-        console.log('Все зеленые ячейки успешно распылены.');
+        // 2026.07.14 закоментили лог console.log('Все зеленые ячейки успешно распылены.');
         return;
     }
 

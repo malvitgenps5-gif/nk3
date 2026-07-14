@@ -94,7 +94,7 @@ const GREEN_COLOR = "#16a34a"; // Оплаченный месяц
 const RED_COLOR = "#dc2626"; // Неоплаченный месяц
 
 window.updateFrameData = function(pageData) {
-    console.log('Фрейм получил команду на обновление данных локально.');
+    // 2026.07.14 закоментили лог console.log('Фрейм получил команду на обновление данных локально.');
     const csv = localStorage.getItem('sheet_data');
     if (!csv) return;
     
@@ -130,7 +130,7 @@ window.updateFrameData = function(pageData) {
     });
     
     render(resultData);
-    console.log('Данные успешно обновлены.');
+    // 2026.07.14 закоментили лог console.log('Данные успешно обновлены.');
     if (typeof selectNextNumber === "function") {
         selectNextNumber();
     }

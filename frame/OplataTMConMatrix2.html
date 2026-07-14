@@ -94,7 +94,7 @@ let animationTimerId = null;
 
 // --- ФУНКЦИЯ ПОЛНОГО ПЕРЕЗАПУСКА ЭФФЕКТА СВЕРХУ ВНИЗ ---
 function resetMatrixAnimation() {
-    console.log("Матрица Чередования: Полный сброс анимации.");
+    // 2026.07.14 закоментили лог console.log("Матрица Чередования: Полный сброс анимации.");
     
     // 1. Очищаем холст
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -120,7 +120,7 @@ function resetMatrixAnimation() {
 
 // --- ФУНКЦИЯ-ПРИЕМНИК ДЛЯ СВЯЗИ С ГЛАВНОЙ СТРАНИЦЕЙ ---
 window.updateFrameData = function(pageData) {
-    console.log('Фрейм Матрицы Чередования активирован. Обновляем данные...');
+    // 2026.07.14 закоментили лог console.log('Фрейм Матрицы Чередования активирован. Обновляем данные...');
     
     // Читаем свежий CSV напрямую из LocalStorage
     const csv = localStorage.getItem('sheet_data');
@@ -164,7 +164,7 @@ window.updateFrameData = function(pageData) {
     greenRooms = newGreen.length ? newGreen : Array.from({length: 96}, (_, i) => i * 2 + 2);
     redRooms = newRed.length ? newRed : Array.from({length: 96}, (_, i) => i * 2 + 1);
 
-    console.log(`Данные обновлены локально. Зеленых: ${greenRooms.length}, Красных: ${redRooms.length}`);
+    // 2026.07.14 закоментили лог console.log(`Данные обновлены локально. Зеленых: ${greenRooms.length}, Красных: ${redRooms.length}`);
     
     // Перезапускаем анимацию "сверху вниз" со случайными числами
     resetMatrixAnimation();

@@ -162,7 +162,7 @@ const textPairs = [
 // --- НОВАЯ ФУНКЦИЯ-ПРИЕМНИК ДЛЯ СВЯЗИ С ГЛАВНОЙ СТРАНИЦЕЙ ---
 // Главная страница автоматически вызывает её без перезагрузки сети каждый раз при показе фрейма
 window.updateFrameData = function(pageData) {
-    console.log('Фрейм получил команду на обновление данных локально.');
+    // 2026.07.14 закоментили лог console.log('Фрейм получил команду на обновление данных локально.');
     // Читаем свежий CSV прямо из LocalStorage, куда его сохраняет главная страница
     const csv = localStorage.getItem('sheet_data');
     if (!csv) return;
@@ -184,7 +184,7 @@ window.updateFrameData = function(pageData) {
     });
 
     redRoomIds = currentRedList.sort((a, b) => a - b);
-    console.log('Данные успешно пересчитаны. Красных квартир:', redRoomIds.length);
+    // 2026.07.14 закоментили лог console.log('Данные успешно пересчитаны. Красных квартир:', redRoomIds.length);
     
     // Выбираем следующую квартиру и обновляем экран
     selectNextNumber();
@@ -274,7 +274,7 @@ function initializeApp() {
 // Безопасная инициализация после загрузки шрифтов
 if (document.fonts) {
     document.fonts.ready.then(function() {
-        console.log('Шрифты загружены. Запуск приложения.');
+        // 2026.07.14 закоментили лог console.log('Шрифты загружены. Запуск приложения.');
         initializeApp();
     });
 } else {

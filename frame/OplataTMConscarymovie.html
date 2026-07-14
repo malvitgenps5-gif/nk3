@@ -112,12 +112,12 @@ for (let c = 0; c < gridCols; c++) {
 
 // Глобальная функция, которую вызывает главная страница для обновления фрейма
 window.updateFrameData = function(pageData) {
-    console.log('Фрейм получил команду на обновление данных локально.');
+    // 2026.07.14 закоментили лог console.log('Фрейм получил команду на обновление данных локально.');
 
     // Читаем свежий CSV прямо из LocalStorage, куда его сохраняет главная страница
     const csv = localStorage.getItem('sheet_data');
     if (!csv) {
-        console.warn('Кэш sheet_data пуст.');
+        // 2026.07.14 закоментили лог console.warn('Кэш sheet_data пуст.');
         return;
     }
 
@@ -144,7 +144,7 @@ window.updateFrameData = function(pageData) {
 
     redRoomIds = currentRedList;
     setInterval(drawLoop, speedInterval);
-    console.log('Данные успешно пересчитаны. Красных квартир:', redRoomIds.length);
+    // 2026.07.14 закоментили лог console.log('Данные успешно пересчитаны. Красных квартир:', redRoomIds.length);
 };
 
 // --- КЛАСС ЦИФРЫ С УЧЕТОМ ЗАНЯТОЙ ЯЧЕЙКИ ---
@@ -249,7 +249,7 @@ function initializeApp() {
 // Безопасная инициализация после загрузки шрифтов (важно для правильного рендера шрифта LeviBrush на Canvas)
 if (document.fonts) {
     document.fonts.ready.then(function() {
-        console.log('Шрифты загружены. Запуск анимации матрицы.');
+        // 2026.07.14 закоментили лог console.log('Шрифты загружены. Запуск анимации матрицы.');
         initializeApp();
     });
 } else {

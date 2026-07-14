@@ -103,10 +103,10 @@ if (currentMonthEl) {
 }
 
 window.updateFrameData = function(pageData) {
-    console.log('Фрейм получил команду на обновление данных локально.');
+    // 2026.07.14 закоментили лог console.log('Фрейм получил команду на обновление данных локально.');
     const csv = localStorage.getItem('sheet_data');
     if (!csv) {
-        console.warn('Кэш sheet_data пуст.');
+        // 2026.07.14 закоментили лог console.warn('Кэш sheet_data пуст.');
         return;
     }
     const rows = csv.split(/\r?\n/).filter(row => row.trim() !== "");
@@ -128,7 +128,7 @@ window.updateFrameData = function(pageData) {
     });
 
     render(resultData);
-    console.log('Данные успешно пересчитаны и отрисованы. Полезных строк:', resultData.length);
+    // 2026.07.14 закоментили лог console.log('Данные успешно пересчитаны и отрисованы. Полезных строк:', resultData.length);
 };
 
 function render(data) {
@@ -180,7 +180,7 @@ function initializeApp() {
 
 if (document.fonts) {
     document.fonts.ready.then(function() {
-        console.log('Шрифты загружены. Запуск приложения.');
+        // 2026.07.14 закоментили лог console.log('Шрифты загружены. Запуск приложения.');
         initializeApp();
     });
 } else {

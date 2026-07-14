@@ -94,7 +94,7 @@ let animationTimerId = null;
 
 // --- ФУНКЦИЯ ПОЛНОГО ПЕРЕЗАПУСКА ЭФФЕКТА СВЕРХУ ВНИЗ ---
 function resetMatrixAnimation() {
-    console.log("Матрица: Полный сброс анимации.");
+    // 2026.07.14 закоментили лог console.log("Матрица: Полный сброс анимации.");
     
     // 1. Очищаем холст до полной черноты
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -121,7 +121,7 @@ function resetMatrixAnimation() {
 
 // --- НОВАЯ ФУНКЦИЯ-ПРИЕМНИК ДЛЯ СВЯЗИ С ГЛАВНОЙ СТРАНИЦЕЙ ---
 window.updateFrameData = function(pageData) {
-    console.log('Фрейм Матрицы активирован. Обновляем данные...');
+    // 2026.07.14 закоментили лог console.log('Фрейм Матрицы активирован. Обновляем данные...');
     
     const csv = localStorage.getItem('sheet_data');
     if (!csv) return;
@@ -164,7 +164,7 @@ window.updateFrameData = function(pageData) {
     roomColors = newColors;
     sortedRoomIds = validIds;
 
-    console.log('Данные Матрицы обновлены локально. Комнат:', sortedRoomIds.length);
+    // 2026.07.14 закоментили лог console.log('Данные Матрицы обновлены локально. Комнат:', sortedRoomIds.length);
     
     // Вызываем сброс и запуск эффекта «сверху вниз» со случайными числами
     resetMatrixAnimation();

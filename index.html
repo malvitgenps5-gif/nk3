@@ -113,12 +113,12 @@ async function getSharedData(forceNetwork = false) {
 
     // Забираем из кеша только если не прошёл интервал И если это не плановое обновление
     if (!forceNetwork && cached && lastUpdate && (now - lastUpdate < REFRESH_INTERVAL - 2000)) {
-        console.log('Данные CSV взяты из LocalStorage');
+        // 2026.07.14 закоментили лог console.log('Данные CSV взяты из LocalStorage');
         return cached;
     }
 
     try {
-        console.log('Сетевой запрос за новым CSV...');
+        // 2026.07.14 закоментили лог console.log('Сетевой запрос за новым CSV...');
         // Добавляем timestamp к URL, чтобы сам браузер не кешировал ответ Google
         const response = await fetch(`${CSV_URL}${CSV_URL.includes('?') ? '&' : '?'}t=${now}`);
         const data = await response.text();
@@ -129,7 +129,7 @@ async function getSharedData(forceNetwork = false) {
         localStorage.setItem(TIMESTAMP_KEY, now.toString());
         return data;
     } catch (err) {
-        console.error('Ошибка загрузки CSV, взят старый кеш:', err);
+        // 2026.07.14 закоментили лог console.error('Ошибка загрузки CSV, взят старый кеш:', err);
         return cached;
     }
 }
@@ -143,7 +143,7 @@ function parseCSV(csv) {
     const durationIdx = headers.indexOf("duration");
 
     if (urlIdx === -1) {
-        console.error("Ошибка: В CSV не найден столбец 'url'");
+        // 2026.07.14 закоментили лог console.error("Ошибка: В CSV не найден столбец 'url'");
         return [];
     }
 
@@ -173,7 +173,7 @@ function createAllFrames() {
         iframe.tabIndex = "-1";
         container.appendChild(iframe);
     });
-    console.log(`Массив шагов: ${pages.length}. Создано уникальных фреймов в DOM: ${uniqueUrls.length}`);
+    // 2026.07.14 закоментили лог console.log(`Массив шагов: ${pages.length}. Создано уникальных фреймов в DOM: ${uniqueUrls.length}`);
 }
 
 // 4. Показ следующего слайда (Исправлена потенциальная ошибка с undefined)
@@ -200,11 +200,11 @@ function showNext() {
 
         // Передаем данные внутрь фрейма, если он готов
         if (nextFrame.contentWindow && typeof nextFrame.contentWindow.updateFrameData === 'function') {
-            console.log(`Передаем новые данные во фрейм: ${currentPage.url}`);
+            // 2026.07.14 закоментили лог console.log(`Передаем новые данные во фрейм: ${currentPage.url}`);
             nextFrame.contentWindow.updateFrameData(currentPage);
         }
     } else {
-        console.error(`Фрейм для URL ${currentPage.url} не найден в DOM`);
+        // 2026.07.14 закоментили лог console.error(`Фрейм для URL ${currentPage.url} не найден в DOM`);
     }
 
     current = (current + 1) % pages.length;
@@ -216,7 +216,7 @@ function showNext() {
 
 // 5. Принудительное обновление содержимого фреймов (Исправлено чтение путей через data-атрибут)
 function reloadAllFrames() {
-    console.log("Принудительное обновление контента страниц внутри фреймов (Раз в час)...");
+    // 2026.07.14 закоментили лог console.log("Принудительное обновление контента страниц внутри фреймов (Раз в час)...");
     const frames = document.querySelectorAll(".my-frame");
     frames.forEach(iframe => {
         const baseSrc = iframe.getAttribute('data-base-src') || iframe.src.split('?')[0];
@@ -235,10 +235,10 @@ async function refreshPagesList() {
         const newUrls = newPages.map(p => p.url).join(',');
         
         pages = newPages;
-        console.log('Список шагов обновлен в фоне. Всего:', pages.length);
+        // 2026.07.14 закоментили лог console.log('Список шагов обновлен в фоне. Всего:', pages.length);
 
         if (oldUrls !== newUrls) {
-            console.log('Состав страниц изменился, полностью перестраиваем фреймы и перезапускаем слайдер...');
+            // 2026.07.14 закоментили лог console.log('Состав страниц изменился, полностью перестраиваем фреймы и перезапускаем слайдер...');
             clearTimeout(timerId); // Останавливаем старый цикл слайдов, чтобы не было наложения
             current = 0;
             createAllFrames();

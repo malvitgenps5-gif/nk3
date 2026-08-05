@@ -125,7 +125,7 @@ window.updateFrameData = function(pageData) {
 };
 
 function render(data) {
-    const colors = { 0: "grey", 1: "red", 2: "green" };
+    const colors = { 0: "green", 1: "red", 2: "green" };
     const colors2 = { 0: "grey", 1: "red2", 2: "green" };
     const grid = document.getElementById("grid");
     grid.innerHTML = "";
@@ -139,13 +139,13 @@ function render(data) {
         } else if (item.id === "0") {
             cell.className = "pust";
         } else {
-            if (item.energo === 0) {
-                cell.className = "cell " + (colors2[item.tenergo] || "");
-                cell.innerHTML = ` <div class="number"></div> `;
-            } else {
-                cell.className = "cell " + (colors[item.energo] || "");
+           // if (item.energo === 0) {
+           //     cell.className = "cell " + (colors2[item.tenergo] || "");
+           //     cell.innerHTML = ` <div class="number"></div> `;
+           // } else {
+                cell.className = "cell " + (colors[item.tenergo] || "");
                 cell.innerHTML = ` <div class="number">${item.id}</div> `;
-            }
+           // }
         }
         grid.appendChild(cell);
     });
